@@ -28,7 +28,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database setup using direct operations
 const setupDatabase = async () => {
-  console.log('🚀 Setting up districts table...\n')
+  console.log('🚀 Setting up SaniSentinel database...\n')
   
   try {
     // Test connection
