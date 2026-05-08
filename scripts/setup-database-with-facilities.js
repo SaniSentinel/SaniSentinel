@@ -50,10 +50,18 @@ const setupDatabase = async () => {
       .select('*')
       .limit(1)
     
-    if (districtsError || facilitiesError) {
+    // Check if reports table exists
+    console.log('🔄 Checking if reports table exists...')
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('reports')
+      .select('*')
+      .limit(1)
+    
+    if (districtsError || facilitiesError || reportsError) {
       console.log('❌ One or more tables do not exist or are not accessible')
       if (districtsError) console.log('Districts error:', districtsError.message)
       if (facilitiesError) console.log('Facilities error:', facilitiesError.message)
+      if (reportsError) console.log('Reports error:', reportsError.message)
       
       console.log('\n🔧 Manual Setup Required:')
       console.log('1. Go to your Supabase dashboard: https://supabase.com/dashboard')
@@ -171,7 +179,62 @@ CREATE TRIGGER handle_facilities_updated_at
     EXECUTE FUNCTION public.handle_updated_at();
       `)
       
-      console.log('\n--- STEP 3: DATABASE FUNCTIONS ---')
+      console.log('\n--- STEP 3: REPORTS TABLE ---')
+      console.log(`
+-- Create reports table
+CREATE TABLE IF NOT EXISTS public.reports (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    facility_id UUID NOT NULL REFERENCES public.facilities(id) ON DELETE CASCADE,
+    reported_by VARCHAR(255) NOT NULL,
+    condition VARCHAR(50) NOT NULL CHECK (condition IN ('good', 'damaged', 'overflow', 'dry', 'blocked', 'out_of_service')),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_reports_facility_id ON public.reports(facility_id);
+CREATE INDEX IF NOT EXISTS idx_reports_reported_by ON public.reports(reported_by);
+CREATE INDEX IF NOT EXISTS idx_reports_condition ON public.reports(condition);
+CREATE INDEX IF NOT EXISTS idx_reports_created_at ON public.reports(created_at);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow read access to all users
+CREATE POLICY "Allow read access to reports" ON public.reports
+    FOR SELECT USING (true);
+
+-- Create policy to allow insert/update/delete for authenticated users only
+CREATE POLICY "Allow full access to authenticated users" ON public.reports
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- Create policy to allow anonymous users to insert reports (for SMS submissions)
+CREATE POLICY "Allow anonymous insert for reports" ON public.reports
+    FOR INSERT WITH CHECK (true);
+
+-- Create function to automatically update facility status based on latest report
+CREATE OR REPLACE FUNCTION update_facility_status_from_report()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE public.facilities 
+    SET status = NEW.condition,
+        updated_at = NOW()
+    WHERE id = NEW.facility_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to automatically update facility status when a new report is created
+CREATE TRIGGER update_facility_status_on_report
+    AFTER INSERT ON public.reports
+    FOR EACH ROW
+    EXECUTE FUNCTION update_facility_status_from_report();
+
+-- Enable Realtime for reports table
+ALTER PUBLICATION supabase_realtime ADD TABLE public.reports;
+      `)
+      
+      console.log('\n--- STEP 4: DATABASE FUNCTIONS ---')
       console.log(`
 -- Function to get districts within a specified radius using Haversine formula
 CREATE OR REPLACE FUNCTION get_districts_within_radius(
@@ -291,7 +354,7 @@ $$ LANGUAGE plpgsql;
       return
     }
     
-    console.log('✅ Both districts and facilities tables exist and are accessible')
+    console.log('✅ All tables (districts, facilities, reports) exist and are accessible')
     
     // Check and insert sample data for districts
     console.log('🔄 Checking districts data...')
@@ -401,14 +464,63 @@ $$ LANGUAGE plpgsql;
       }
     }
     
+    // Check and insert sample data for reports
+    console.log('🔄 Checking reports data...')
+    const { data: currentReports, error: reportsCountError } = await supabase
+      .from('reports')
+      .select('*')
+    
+    if (reportsCountError) {
+      throw reportsCountError
+    }
+    
+    if (currentReports && currentReports.length > 0) {
+      console.log(`✅ Found ${currentReports.length} existing reports`)
+    } else {
+      console.log('🔄 Inserting sample reports data...')
+      
+      // Get some facility IDs for sample reports
+      const { data: sampleFacilities, error: getFacilitiesError } = await supabase
+        .from('facilities')
+        .select('id, name')
+        .limit(5)
+      
+      if (getFacilitiesError) {
+        throw getFacilitiesError
+      }
+      
+      if (sampleFacilities && sampleFacilities.length > 0) {
+        const sampleReports = [
+          { facility_id: sampleFacilities[0].id, reported_by: '+233241234567', condition: 'good', notes: 'Facility is clean and functioning well', created_at: '2024-02-15T08:30:00Z' },
+          { facility_id: sampleFacilities[1].id, reported_by: '+233241234568', condition: 'overflow', notes: 'Toilet is overflowing, needs immediate attention', created_at: '2024-02-14T14:20:00Z' },
+          { facility_id: sampleFacilities[2].id, reported_by: '+233241234569', condition: 'good', notes: 'All systems working normally', created_at: '2024-02-14T10:15:00Z' },
+          { facility_id: sampleFacilities[3].id, reported_by: '+233241234570', condition: 'dry', notes: 'No water supply, hand washing station empty', created_at: '2024-02-13T16:45:00Z' },
+          { facility_id: sampleFacilities[4].id, reported_by: '+233241234571', condition: 'damaged', notes: 'Door lock broken, needs repair', created_at: '2024-02-13T09:30:00Z' }
+        ]
+        
+        const { data: insertedReports, error: insertReportsError } = await supabase
+          .from('reports')
+          .insert(sampleReports)
+          .select()
+        
+        if (insertReportsError) {
+          console.log('⚠️  Reports sample data insertion failed:', insertReportsError.message)
+        } else {
+          console.log(`✅ Inserted ${insertedReports.length} sample reports`)
+        }
+      }
+    }
+    
     // Final verification
     console.log('🔄 Final verification...')
     const { data: finalDistricts } = await supabase.from('districts').select('*').limit(3)
     const { data: finalFacilities } = await supabase.from('facilities').select('*, district:districts(name)').limit(3)
+    const { data: finalReports } = await supabase.from('reports').select('*, facility:facilities(name)').limit(3)
     
     console.log(`✅ Verification successful!`)
     console.log(`   - Districts table: ${finalDistricts?.length || 0} accessible records`)
     console.log(`   - Facilities table: ${finalFacilities?.length || 0} accessible records`)
+    console.log(`   - Reports table: ${finalReports?.length || 0} accessible records`)
     
     if (finalFacilities && finalFacilities.length > 0) {
       console.log('   Sample facilities:')
@@ -421,7 +533,9 @@ $$ LANGUAGE plpgsql;
     console.log('\n📋 What was set up:')
     console.log('   ✅ Districts table with 18 Northern Ghana districts')
     console.log('   ✅ Facilities table with sample sanitation facilities')
+    console.log('   ✅ Reports table with condition reporting system')
     console.log('   ✅ Database functions for radius-based queries')
+    console.log('   ✅ Auto-update triggers and realtime subscriptions')
     console.log('   ✅ Row Level Security (RLS) policies')
     console.log('   ✅ Proper indexes for performance')
     
@@ -435,6 +549,7 @@ $$ LANGUAGE plpgsql;
     console.log('\n📊 Available API methods:')
     console.log('   Districts: getAll(), getByRegion(), search(), create()')
     console.log('   Facilities: getAll(), getByDistrict(), getByStatus(), getHighRisk()')
+    console.log('   Reports: getAll(), getByFacility(), createFromSMS(), getRecent()')
     
   } catch (error) {
     console.error('\n💥 Setup failed:', error.message)

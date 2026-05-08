@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.facilities (
 );
 
 -- Create indexes for better query performance
-CREATE UNIQUE INDEX IF NOT EXISTS idx_facilities_name_unique ON public.facilities(name);
+CREATE INDEX IF NOT EXISTS idx_facilities_name ON public.facilities(name);
 CREATE INDEX IF NOT EXISTS idx_facilities_type ON public.facilities(type);
 CREATE INDEX IF NOT EXISTS idx_facilities_district_id ON public.facilities(district_id);
 CREATE INDEX IF NOT EXISTS idx_facilities_status ON public.facilities(status);
@@ -92,9 +92,7 @@ INSERT INTO public.facilities (name, type, district_id, lat, lng, last_serviced,
     
     -- Kumbungu facilities
     ('Kumbungu Health Post Latrine', 'latrine', (SELECT id FROM public.districts WHERE name = 'Kumbungu'), 9.5833, -0.8500, '2024-02-06', 'good'),
-    ('Kumbungu Waste Collection', 'waste_collection_point', (SELECT id FROM public.districts WHERE name = 'Kumbungu'), 9.5850, -0.8480, '2024-01-15', 'good')
-
-ON CONFLICT (name) DO NOTHING;
+    ('Kumbungu Waste Collection', 'waste_collection_point', (SELECT id FROM public.districts WHERE name = 'Kumbungu'), 9.5850, -0.8480, '2024-01-15', 'good');
 
 -- Update risk scores based on status and last serviced date
 UPDATE public.facilities SET risk_score = 
