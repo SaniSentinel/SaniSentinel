@@ -5,6 +5,7 @@ import L from 'leaflet'
 import { facilities } from '../lib/facilities'
 import { districts } from '../lib/districts'
 import { supabase } from '../lib/supabase'
+import { FacilityPopup } from '../components'
 import 'leaflet/dist/leaflet.css'
 
 // Fix for default markers in react-leaflet
@@ -650,58 +651,7 @@ const MapView = () => {
                 }}
               >
                 <Popup>
-                  <div className="p-2 min-w-64">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-gray-900 text-sm">
-                        {getFacilityTypeIcon(facility.type)} {facility.name}
-                      </h3>
-                    </div>
-                    
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <StatusBadge status={facility.status} />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Risk Level:</span>
-                        <RiskBadge riskScore={facility.risk_score || 0} />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Type:</span>
-                        <span className="capitalize">{facility.type.replace('_', ' ')}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">District:</span>
-                        <span>{facility.district?.name}</span>
-                      </div>
-                      
-                      {facility.last_serviced && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600">Last Serviced:</span>
-                          <span>{new Date(facility.last_serviced).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Coordinates:</span>
-                        <span className="text-xs font-mono">
-                          {facility.lat.toFixed(4)}, {facility.lng.toFixed(4)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-2 border-t">
-                      <button 
-                        onClick={() => setSelectedFacility(facility)}
-                        className="w-full bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </div>
+                  <FacilityPopup facility={facility} />
                 </Popup>
               </Marker>
             ))}

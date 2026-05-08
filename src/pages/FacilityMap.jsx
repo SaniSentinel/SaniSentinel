@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../lib/supabase'
+import { FacilityPopup } from '../components'
 import 'leaflet/dist/leaflet.css'
 
 // Fix for default markers in react-leaflet
@@ -336,52 +337,7 @@ const FacilityMap = () => {
                 icon={createRiskMarker(facility.risk_score || 0)}
               >
                 <Popup>
-                  <div className="p-3 min-w-64">
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-semibold text-gray-900">
-                        {getFacilityIcon(facility.type)} {facility.name}
-                      </h3>
-                      <div className={`px-2 py-1 rounded text-xs font-medium text-white ${getRiskLevel(facility.risk_score || 0).bgColor}`}>
-                        {getRiskLevel(facility.risk_score || 0).label}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Risk Score:</span>
-                        <span className="font-medium">{facility.risk_score || 0}/100</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <span className="capitalize">{facility.status}</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Type:</span>
-                        <span className="capitalize">{facility.type.replace('_', ' ')}</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">District:</span>
-                        <span>{facility.district?.name}</span>
-                      </div>
-                      
-                      {facility.last_serviced && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Last Serviced:</span>
-                          <span>{new Date(facility.last_serviced).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Location:</span>
-                        <span className="font-mono text-xs">
-                          {facility.lat.toFixed(4)}, {facility.lng.toFixed(4)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <FacilityPopup facility={facility} />
                 </Popup>
               </Marker>
             ))}

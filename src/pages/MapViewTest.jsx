@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
+import { FacilityPopup } from '../components'
 import 'leaflet/dist/leaflet.css'
 
 // Fix for default markers in react-leaflet
@@ -116,12 +117,7 @@ const MapViewTest = () => {
                 position={[facility.lat, facility.lng]}
               >
                 <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold">{facility.name}</h3>
-                    <p className="text-sm">Status: {facility.status}</p>
-                    <p className="text-sm">Risk Score: {facility.risk_score}</p>
-                    <p className="text-sm">Type: {facility.type}</p>
-                  </div>
+                  <FacilityPopup facility={facility} />
                 </Popup>
               </Marker>
             ))}
