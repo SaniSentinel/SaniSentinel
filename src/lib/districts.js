@@ -1,32 +1,67 @@
-import { db } from './supabase'
+import { supabase } from './supabase'
 
 // Districts API functions
 export const districts = {
   // Get all districts
   getAll: async () => {
-    return await db.select('districts', '*')
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .select('*')
+        .order('name')
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Get districts by region
   getByRegion: async (region) => {
-    return await db.select('districts', '*', { region })
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .select('*')
+        .eq('region', region)
+        .order('name')
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Get district by ID
   getById: async (id) => {
-    const result = await db.select('districts', '*', { id })
-    return {
-      data: result.data?.[0] || null,
-      error: result.error
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
     }
   },
 
   // Get district by name
   getByName: async (name) => {
-    const result = await db.select('districts', '*', { name })
-    return {
-      data: result.data?.[0] || null,
-      error: result.error
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .select('*')
+        .eq('name', name)
+        .single()
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
     }
   },
 
@@ -83,12 +118,23 @@ export const districts = {
       }
     }
 
-    return await db.insert('districts', {
-      name: name.trim(),
-      region: region.trim(),
-      lat: parseFloat(lat),
-      lng: parseFloat(lng)
-    })
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .insert([{
+          name: name.trim(),
+          region: region.trim(),
+          lat: parseFloat(lat),
+          lng: parseFloat(lng)
+        }])
+        .select()
+        .single()
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Update district
@@ -115,12 +161,36 @@ export const districts = {
     if (cleanUpdates.lat) cleanUpdates.lat = parseFloat(cleanUpdates.lat)
     if (cleanUpdates.lng) cleanUpdates.lng = parseFloat(cleanUpdates.lng)
 
-    return await db.update('districts', cleanUpdates, { id })
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .update(cleanUpdates)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Delete district
   delete: async (id) => {
-    return await db.delete('districts', { id })
+    try {
+      const { data, error } = await supabase
+        .from('districts')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Get unique regions
