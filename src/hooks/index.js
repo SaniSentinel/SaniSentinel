@@ -2,3 +2,4 @@
 export * from './useSupabase'
 export * from './useLocalStorage'
 export * from './useFacilities'
+export { default as useAlerts } from './useAlerts'

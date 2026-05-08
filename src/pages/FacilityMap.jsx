@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../lib/supabase'
-import { FacilityPopup } from '../components'
+import { FacilityPopup, AlertsSidebar } from '../components'
 import 'leaflet/dist/leaflet.css'
 
 // Fix for default markers in react-leaflet
@@ -76,6 +76,7 @@ const FacilityMap = () => {
   const [facilities, setFacilities] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [alertsSidebarOpen, setAlertsSidebarOpen] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     good: 0,
@@ -256,6 +257,16 @@ const FacilityMap = () => {
                 <div className="text-xs text-gray-500">Good</div>
               </div>
             </div>
+            
+            {/* Alerts Toggle Button */}
+            <button
+              onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
+              className="ml-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+              title="Toggle Alerts"
+            >
+              <span className="text-lg">🚨</span>
+              <span className="text-sm font-medium">Alerts</span>
+            </button>
           </div>
         </div>
       </div>
@@ -366,6 +377,12 @@ const FacilityMap = () => {
           </div>
         </div>
       </div>
+
+      {/* Real-time Alerts Sidebar */}
+      <AlertsSidebar 
+        isOpen={alertsSidebarOpen}
+        onToggle={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
+      />
     </div>
   )
 }
