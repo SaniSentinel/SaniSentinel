@@ -53,29 +53,16 @@ const Home = () => {
 
         <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <Link 
-            to="/map"
+            to="/facility-map"
             className="bg-blue-600 text-white p-6 rounded-lg hover:bg-blue-700 transition-colors group transform hover:scale-105"
           >
             <div className="text-3xl mb-3">🗺️</div>
             <h3 className="text-xl font-semibold mb-2">Facility Map</h3>
             <p className="text-blue-100">
-              View all sanitation facilities on an interactive map with real-time status updates
+              Interactive map with color-coded facility markers based on risk levels
             </p>
           </Link>
 
-          <Link 
-            to="/map-test"
-            className="bg-green-600 text-white p-6 rounded-lg hover:bg-green-700 transition-colors group transform hover:scale-105"
-          >
-            <div className="text-3xl mb-3">🧪</div>
-            <h3 className="text-xl font-semibold mb-2">Map Test</h3>
-            <p className="text-green-100">
-              Test version with sample data to verify map functionality
-            </p>
-          </Link>
-        </div>
-
-        <div className="mt-6 max-w-2xl mx-auto">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 transform hover:scale-105 transition-transform">
             <div className="text-3xl mb-3">📊</div>
             <h3 className="text-xl font-semibold mb-2 text-gray-900">Dashboard</h3>
