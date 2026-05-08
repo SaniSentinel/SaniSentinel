@@ -7,6 +7,7 @@ import ProfessionalDashboard from './pages/ProfessionalDashboard'
 import ProfessionalFacilityMap from './pages/ProfessionalFacilityMap'
 import ProfessionalReports from './pages/ProfessionalReports'
 import ProfessionalMaintenance from './pages/ProfessionalMaintenance'
+import ProfessionalWorkers from './pages/ProfessionalWorkers'
 
 // Legacy components (for backward compatibility)
 import { Home, MapView } from './pages'
@@ -22,15 +23,14 @@ function App() {
         <Route path="/professional-facility-map" element={<ProfessionalFacilityMap />} />
         <Route path="/professional-reports" element={<ProfessionalReports />} />
         <Route path="/professional-maintenance" element={<ProfessionalMaintenance />} />
+        <Route path="/professional-workers" element={<ProfessionalWorkers />} />
         
         {/* Main application routes */}
         <Route path="/dashboard" element={<ProfessionalDashboard />} />
         <Route path="/facility-map" element={<ProfessionalFacilityMap />} />
         <Route path="/reports" element={<ProfessionalReports />} />
         <Route path="/maintenance" element={<ProfessionalMaintenance />} />
-        
-        {/* Placeholder routes for future professional pages */}
-        <Route path="/workers" element={<div className="p-8 text-center"><h1 className="text-2xl font-bold text-gray-900">Workers Page</h1><p className="text-gray-600 mt-2">Coming soon...</p></div>} />
+        <Route path="/workers" element={<ProfessionalWorkers />} />
         
         {/* Legacy routes (for backward compatibility) */}
         <Route path="/legacy-home" element={<Home />} />
