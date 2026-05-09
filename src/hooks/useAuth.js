@@ -25,7 +25,7 @@ export const useAuth = () => {
     if (!userData) return false
     
     // System admin has all permissions
-    if (userData.role === 'system_admin') return true
+    if (userData.role === 'system_admin' || userData.role === 'admin') return true
     
     // Check if user has 'all' permission
     if (userData.permissions.includes('all')) return true
@@ -45,7 +45,7 @@ export const useAuth = () => {
     if (!userData) return false
     
     // System admin can access all districts
-    if (userData.role === 'system_admin') return true
+    if (userData.role === 'system_admin' || userData.role === 'admin') return true
     
     // Check if user's district matches
     return userData.district_id === districtId
@@ -183,7 +183,7 @@ export const useAuth = () => {
     
     // Authentication state
     isAuthenticated: !!user,
-    isAdmin: userData?.role === 'system_admin',
+    isAdmin: userData?.role === 'system_admin' || userData?.role === 'admin',
     isDistrictOfficer: userData?.role === 'district_officer',
     
     // Permission helpers

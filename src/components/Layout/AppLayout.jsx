@@ -1,12 +1,30 @@
 import React, { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AlertsSidebar from '../AlertsSidebar'
 import { useAlerts } from '../../hooks'
+import { useAuth } from '../../hooks/useAuth'
 
 const AppLayout = ({ children, title, subtitle, actions }) => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [alertsSidebarOpen, setAlertsSidebarOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const { summary } = useAlerts({ includeSummary: true })
+  const { user, signOut } = useAuth()
+
+  const handleLogout = async () => {
+    try {
+      setIsSigningOut(true)
+      const result = await signOut()
+      if (!result?.error) {
+        navigate('/login')
+      }
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      setIsSigningOut(false)
+    }
+  }
 
   const navigation = [
     { name: 'Overview', href: '/dashboard', icon: '📊', current: location.pathname === '/dashboard' },
@@ -76,12 +94,21 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
               {/* User Menu */}
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 text-sm font-medium">DO</span>
+                  <span className="text-gray-600 text-sm font-medium">
+                    {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
+                  </span>
                 </div>
                 <div className="hidden sm:block">
-                  <div className="text-sm font-medium text-gray-900">District Officer</div>
-                  <div className="text-xs text-gray-500">Northern Region</div>
+                  <div className="text-sm font-medium text-gray-900">{user?.name || user?.email || 'User'}</div>
+                  <div className="text-xs text-gray-500">{user?.role || 'Authenticated'}</div>
                 </div>
+                <button
+                  onClick={handleLogout}
+                  disabled={isSigningOut}
+                  className="ml-2 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSigningOut ? 'Signing out...' : 'Logout'}
+                </button>
               </div>
             </div>
           </div>

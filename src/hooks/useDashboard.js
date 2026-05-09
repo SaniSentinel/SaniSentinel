@@ -61,6 +61,7 @@ export const useDashboard = (options = {}) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [fatalFetchError, setFatalFetchError] = useState(false)
 
   const {
     autoRefresh = true,
@@ -71,6 +72,10 @@ export const useDashboard = (options = {}) => {
 
   // Load dashboard statistics
   const loadStats = useCallback(async () => {
+    if (fatalFetchError) {
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -110,16 +115,25 @@ export const useDashboard = (options = {}) => {
     } catch (err) {
       console.error('Error loading dashboard stats:', err)
       setError(err.message)
+
+      const message = String(err?.message || '')
+      if (message.includes('operator does not exist: text ->> unknown') || message.includes('404')) {
+        setFatalFetchError(true)
+      }
     } finally {
       setLoading(false)
     }
-  }, [includeActivity, includeMetrics])
+  }, [includeActivity, includeMetrics, fatalFetchError])
 
   // Get facility distribution by district
   const [facilityDistribution, setFacilityDistribution] = useState({})
   const [distributionLoading, setDistributionLoading] = useState(false)
 
   const loadFacilityDistribution = useCallback(async () => {
+    if (fatalFetchError) {
+      return
+    }
+
     try {
       setDistributionLoading(true)
       const result = await dashboard.getFacilityDistribution()
@@ -127,10 +141,14 @@ export const useDashboard = (options = {}) => {
       setFacilityDistribution(result.data)
     } catch (err) {
       console.error('Error loading facility distribution:', err)
+      const message = String(err?.message || '')
+      if (message.includes('operator does not exist: text ->> unknown') || message.includes('404')) {
+        setFatalFetchError(true)
+      }
     } finally {
       setDistributionLoading(false)
     }
-  }, [])
+  }, [fatalFetchError])
 
   // Calculate derived statistics
   const derivedStats = {
@@ -151,7 +169,7 @@ export const useDashboard = (options = {}) => {
 
   // Setup real-time subscriptions for live updates
   useEffect(() => {
-    if (!autoRefresh) return
+    if (!autoRefresh || fatalFetchError) return
 
     const subscriptions = []
 
@@ -200,11 +218,11 @@ export const useDashboard = (options = {}) => {
     return () => {
       subscriptions.forEach(sub => sub.unsubscribe())
     }
-  }, [autoRefresh, loadStats])
+  }, [autoRefresh, loadStats, fatalFetchError])
 
   // Setup periodic refresh
   useEffect(() => {
-    if (!autoRefresh || !refreshInterval) return
+    if (!autoRefresh || !refreshInterval || fatalFetchError) return
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing dashboard stats...')
@@ -212,7 +230,7 @@ export const useDashboard = (options = {}) => {
     }, refreshInterval)
 
     return () => clearInterval(interval)
-  }, [autoRefresh, refreshInterval, loadStats])
+  }, [autoRefresh, refreshInterval, loadStats, fatalFetchError])
 
   // Load initial data
   useEffect(() => {

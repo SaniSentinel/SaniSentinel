@@ -70,8 +70,12 @@ const AuthGuard = ({ children, redirectTo = '/login', allowedRoles = null }) => 
   // Check role-based access if roles are specified
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = user.user_metadata?.role
+    const normalizedRole = userRole === 'admin' ? 'system_admin' : userRole
+    const normalizedAllowedRoles = allowedRoles.map((role) => (
+      role === 'admin' ? 'system_admin' : role
+    ))
     
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    if (!normalizedRole || !normalizedAllowedRoles.includes(normalizedRole)) {
       console.log('AuthGuard: Insufficient permissions, user role:', userRole, 'required:', allowedRoles)
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -203,9 +203,14 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
     high: 0,
     resolved: 0
   })
+  const [fatalFetchError, setFatalFetchError] = useState(false)
 
   // Load initial alerts
   const loadAlerts = useCallback(async () => {
+    if (fatalFetchError) {
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -219,10 +224,14 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
     } catch (err) {
       console.error('Error loading alerts:', err)
       setError(err.message)
+      const message = String(err?.message || '')
+      if (message.includes('operator does not exist: text ->> unknown') || message.includes('404')) {
+        setFatalFetchError(true)
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fatalFetchError])
 
   // Filter alerts based on active filter
   useEffect(() => {
@@ -267,6 +276,8 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
 
   // Handle real-time updates
   useEffect(() => {
+    if (fatalFetchError) return
+
     const subscription = supabase
       .channel('alerts_realtime')
       .on('postgres_changes', 
@@ -314,7 +325,7 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fatalFetchError])
 
   // Load initial data
   useEffect(() => {

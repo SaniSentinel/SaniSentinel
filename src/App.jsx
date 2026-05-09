@@ -32,10 +32,12 @@ import LoginTest from './pages/LoginTest'
 import LoginSimple from './pages/LoginSimple'
 import RouteTestPage from './pages/RouteTestPage'
 import UserManagement from './pages/UserManagement'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminGISMap from './pages/AdminGISMap'
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public Routes (No Authentication Required) */}
         <Route path="/" element={<LandingPage />} />
@@ -115,6 +117,18 @@ function App() {
         } />
         
         {/* Admin Management Routes */}
+        <Route path="/admin-dashboard" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+            <AdminDashboard />
+          </AuthGuard>
+        } />
+
+        <Route path="/admin/gis-map" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+            <AdminGISMap />
+          </AuthGuard>
+        } />
+
         <Route path="/admin/users" element={
           <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
             <UserManagement />

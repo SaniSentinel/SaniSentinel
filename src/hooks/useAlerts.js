@@ -13,6 +13,7 @@ export const useAlerts = (options = {}) => {
     medium: 0,
     low: 0
   })
+  const [fatalFetchError, setFatalFetchError] = useState(false)
 
   const {
     autoRefresh = true,
@@ -23,6 +24,10 @@ export const useAlerts = (options = {}) => {
 
   // Load alerts data
   const loadAlerts = useCallback(async () => {
+    if (fatalFetchError) {
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -47,10 +52,14 @@ export const useAlerts = (options = {}) => {
     } catch (err) {
       console.error('Error loading alerts:', err)
       setError(err.message)
+      const message = String(err?.message || '')
+      if (message.includes('operator does not exist: text ->> unknown') || message.includes('404')) {
+        setFatalFetchError(true)
+      }
     } finally {
       setLoading(false)
     }
-  }, [activeOnly, limit, includeSummary])
+  }, [activeOnly, limit, includeSummary, fatalFetchError])
 
   // Get alerts by severity
   const getAlertsBySeverity = useCallback((severity) => {
@@ -146,7 +155,7 @@ export const useAlerts = (options = {}) => {
 
   // Setup realtime subscriptions
   useEffect(() => {
-    if (!autoRefresh) return
+    if (!autoRefresh || fatalFetchError) return
 
     const subscription = supabase
       .channel('alerts-changes')
@@ -181,7 +190,7 @@ export const useAlerts = (options = {}) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, [autoRefresh])
+  }, [autoRefresh, fatalFetchError])
 
   // Load initial data
   useEffect(() => {
