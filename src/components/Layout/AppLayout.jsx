@@ -28,8 +28,8 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
   }
 
   const navigation = [
-    { name: 'Overview', href: '/dashboard', icon: '📊', current: location.pathname === '/dashboard' },
-    { name: 'Facility Map', href: '/facility-map', icon: '🗺️', current: location.pathname === '/facility-map' },
+    { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : (user?.role === 'district_officer' ? '/officer-dashboard' : '/dashboard'), icon: '📊', current: location.pathname === '/dashboard' || location.pathname === '/admin-dashboard' || location.pathname === '/officer-dashboard' },
+    { name: 'Facility Map', href: user?.role === 'district_officer' ? '/officer-map' : '/facility-map', icon: '🗺️', current: location.pathname === '/facility-map' || location.pathname === '/officer-map' },
     { name: 'Reports', href: '/reports', icon: '📝', current: location.pathname === '/reports' },
     { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: location.pathname === '/maintenance' },
     { name: 'Workers', href: '/workers', icon: '👥', current: location.pathname === '/workers' },
