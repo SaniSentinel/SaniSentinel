@@ -29,23 +29,32 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
 
   const path = location.pathname
   const isOfficer = user?.role === 'district_officer'
+  const useSidebarLayout = isAdminUser || isOfficer
 
-  const navigation = isOfficer
-    ? [
-        { name: 'Overview', href: '/officer-dashboard', icon: '📊', current: path === '/officer-dashboard' },
-        { name: 'Facility Map', href: '/officer-map', icon: '🗺️', current: path === '/officer-map' },
-        { name: 'My Alerts', href: '/officer-alerts', icon: '🚨', current: path === '/officer-alerts' },
-        { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
-        { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
-        { name: 'My Workers', href: '/officer-workers', icon: '👥', current: path === '/officer-workers' },
+  const navigation = [
+    { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : '/dashboard', icon: '📊', current: path === '/dashboard' || path === '/admin-dashboard' },
+    { name: 'Facility Map', href: '/facility-map', icon: '🗺️', current: path === '/facility-map' || path === '/professional-facility-map' },
+    { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
+    { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
+    { name: 'Workers', href: '/workers', icon: '👥', current: path === '/workers' || path === '/professional-workers' },
+  ]
+
+  const officerNavIsActive = (item) =>
+    path === item.href || (item.alsoMatch && item.alsoMatch.includes(path))
+
+  const officerSidebarSections = [
+    {
+      title: 'District operations',
+      items: [
+        { name: 'Overview', href: '/officer-dashboard', icon: '📊' },
+        { name: 'Facility Map', href: '/officer-map', icon: '🗺️' },
+        { name: 'My Alerts', href: '/officer-alerts', icon: '🚨' },
+        { name: 'Reports', href: '/reports', icon: '📝', alsoMatch: ['/professional-reports'] },
+        { name: 'Maintenance', href: '/maintenance', icon: '🔧', alsoMatch: ['/professional-maintenance'] },
+        { name: 'My Workers', href: '/officer-workers', icon: '👥' }
       ]
-    : [
-        { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : '/dashboard', icon: '📊', current: path === '/dashboard' || path === '/admin-dashboard' },
-        { name: 'Facility Map', href: '/facility-map', icon: '🗺️', current: path === '/facility-map' || path === '/professional-facility-map' },
-        { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
-        { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
-        { name: 'Workers', href: '/workers', icon: '👥', current: path === '/workers' || path === '/professional-workers' },
-      ]
+    }
+  ]
 
   const adminSidebarSections = [
     {
@@ -155,8 +164,8 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
         </div>
       </nav>
 
-      {/* Secondary Navigation for non-admin views */}
-      {!isAdminUser && (
+      {/* Secondary tab navigation — workers / generic users only (officers use sidebar) */}
+      {!isAdminUser && !isOfficer && (
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <nav className="flex space-x-8" aria-label="Tabs">
@@ -194,35 +203,65 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
         </div>
       )}
 
-      {/* Main Content */}
-      {isAdminUser ? (
+      {/* Main Content — admins & district officers use left sidebar */}
+      {useSidebarLayout ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-6">
-            <aside className="w-full lg:w-72 bg-white rounded-xl border border-gray-200 shadow-sm p-4 h-fit">
-              {adminSidebarSections.map((section) => (
-                <div key={section.title} className="mb-6 last:mb-0">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{section.title}</h3>
-                  <div className="space-y-1">
-                    {section.items.map((item) => {
-                      const active = location.pathname === item.href
-                      return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                            active
-                              ? 'bg-green-50 text-green-700 font-medium'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          <span>{item.icon}</span>
-                          <span>{item.name}</span>
-                        </Link>
-                      )
-                    })}
+            <aside className="w-full lg:w-72 bg-white rounded-xl border border-gray-200 shadow-sm p-4 h-fit lg:sticky lg:top-4">
+              {isAdminUser &&
+                adminSidebarSections.map((section) => (
+                  <div key={section.title} className="mb-6 last:mb-0">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                      {section.title}
+                    </h3>
+                    <div className="space-y-1">
+                      {section.items.map((item) => {
+                        const active = location.pathname === item.href
+                        return (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                              active
+                                ? 'bg-green-50 text-green-700 font-medium'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span>{item.icon}</span>
+                            <span>{item.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              {isOfficer &&
+                officerSidebarSections.map((section) => (
+                  <div key={section.title} className="mb-6 last:mb-0">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                      {section.title}
+                    </h3>
+                    <div className="space-y-1">
+                      {section.items.map((item) => {
+                        const active = officerNavIsActive(item)
+                        return (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                              active
+                                ? 'bg-green-50 text-green-700 font-medium'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span>{item.icon}</span>
+                            <span>{item.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
             </aside>
 
             <main className="flex-1 min-w-0">
