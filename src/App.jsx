@@ -21,8 +21,11 @@ import AddFacilityDemo from './pages/AddFacilityDemo'
 import AuthDemo from './pages/AuthDemo'
 import AuthTestPage from './pages/AuthTestPage'
 import Login from './pages/Login'
+import LoginBasic from './pages/LoginBasic'
+import LoginDirect from './pages/LoginDirect'
 import LoginTest from './pages/LoginTest'
 import LoginSimple from './pages/LoginSimple'
+import UserManagement from './pages/UserManagement'
 
 function App() {
   return (
@@ -50,7 +53,10 @@ function App() {
         <Route path="/demo/add-facility" element={<AddFacilityDemo />} />
         <Route path="/demo/auth" element={<AuthDemo />} />
         <Route path="/test/auth" element={<AuthTestPage />} />
+        <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/login-basic" element={<LoginBasic />} />
+        <Route path="/login-direct" element={<LoginDirect />} />
         <Route path="/login-test" element={<LoginTest />} />
         <Route path="/login-simple" element={<LoginSimple />} />
         
