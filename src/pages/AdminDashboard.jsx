@@ -175,6 +175,23 @@ const AdminDashboard = () => {
       </div>
 
       <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">SMS Gateway History</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              View full inbound and outbound SMS logs across all districts.
+            </p>
+          </div>
+          <Link
+            to="/admin/sms-logs"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Open SMS Logs
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Cross-District Comparison</h2>
           <span className="text-sm text-gray-500">Risk score and critical counts by district</span>

@@ -245,11 +245,27 @@ async function logSMSActivity(
   recipients: string[], 
   message: string, 
   success: boolean, 
-  error?: string
+  error?: string,
+  context?: { facility_id?: string; district_id?: string; provider_message_id?: string; test_mode?: boolean }
 ) {
   try {
-    // You could create an sms_logs table to track SMS activity
-    // For now, we'll just log to console
+    const status = success ? 'sent' : 'failed'
+    const inserts = recipients.map((recipient) => ({
+      direction: 'outbound',
+      status,
+      phone_to: recipient,
+      message,
+      facility_id: context?.facility_id || null,
+      district_id: context?.district_id || null,
+      provider_message_id: context?.provider_message_id || null,
+      error_message: error || null,
+      metadata: {
+        alert_id: alertId,
+        test_mode: context?.test_mode || false
+      }
+    }))
+
+    await supabase.from('sms_gateway_logs').insert(inserts)
     console.log(`📱 SMS Log: Alert ${alertId}, Recipients: ${recipients.length}, Success: ${success}`)
     if (error) {
       console.error(`📱 SMS Error: ${error}`)
@@ -464,7 +480,13 @@ serve(async (req) => {
         recipients,
         smsMessage,
         smsResponse.success,
-        smsResponse.error
+        smsResponse.error,
+        {
+          facility_id: alert.facility_id,
+          district_id: alert.facilities?.district_id,
+          provider_message_id: smsResponse.message_id,
+          test_mode
+        }
       )
       
       smsResults.push({

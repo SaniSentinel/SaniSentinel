@@ -262,6 +262,36 @@ function validatePhoneNumber(phone: string): string {
   return cleaned
 }
 
+async function logInboundSMS(
+  supabase: any,
+  payload: {
+    status: 'received' | 'processed' | 'failed'
+    phone_from: string
+    message: string
+    facility_id?: string
+    district_id?: string
+    provider_message_id?: string
+    error_message?: string
+    metadata?: Record<string, unknown>
+  }
+) {
+  try {
+    await supabase.from('sms_gateway_logs').insert({
+      direction: 'inbound',
+      status: payload.status,
+      phone_from: payload.phone_from,
+      message: payload.message,
+      facility_id: payload.facility_id || null,
+      district_id: payload.district_id || null,
+      provider_message_id: payload.provider_message_id || null,
+      error_message: payload.error_message || null,
+      metadata: payload.metadata || {}
+    })
+  } catch (logError) {
+    console.error('Failed to log inbound SMS:', logError)
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -310,8 +340,28 @@ serve(async (req) => {
       id: incomingSMS.id
     })
 
+    await logInboundSMS(supabase, {
+      status: 'received',
+      phone_from: incomingSMS.from,
+      message: incomingSMS.text || '',
+      provider_message_id: incomingSMS.id,
+      metadata: {
+        to: incomingSMS.to || null,
+        date: incomingSMS.date || null,
+        linkId: incomingSMS.linkId || null,
+        networkCode: incomingSMS.networkCode || null
+      }
+    })
+
     // Validate required fields
     if (!incomingSMS.text || !incomingSMS.from) {
+      await logInboundSMS(supabase, {
+        status: 'failed',
+        phone_from: incomingSMS.from || 'unknown',
+        message: incomingSMS.text || '',
+        provider_message_id: incomingSMS.id,
+        error_message: 'Missing required fields: text and from are required'
+      })
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields: text and from are required',
@@ -332,6 +382,16 @@ serve(async (req) => {
 
     if (!parsed.is_valid) {
       console.log('❌ Invalid SMS format:', parsed.error)
+      await logInboundSMS(supabase, {
+        status: 'failed',
+        phone_from: incomingSMS.from,
+        message: incomingSMS.text,
+        provider_message_id: incomingSMS.id,
+        error_message: parsed.error,
+        metadata: {
+          parsed
+        }
+      })
       
       // TODO: Send help message back to user
       return new Response(
@@ -354,6 +414,16 @@ serve(async (req) => {
     
     if (!facility) {
       console.log('❌ Facility not found:', parsed.facility_id)
+      await logInboundSMS(supabase, {
+        status: 'failed',
+        phone_from: incomingSMS.from,
+        message: incomingSMS.text,
+        provider_message_id: incomingSMS.id,
+        error_message: `Facility '${parsed.facility_id}' not found`,
+        metadata: {
+          parsed
+        }
+      })
       
       return new Response(
         JSON.stringify({
@@ -395,6 +465,18 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('❌ Error inserting report:', insertError)
+      await logInboundSMS(supabase, {
+        status: 'failed',
+        phone_from: incomingSMS.from,
+        message: incomingSMS.text,
+        provider_message_id: incomingSMS.id,
+        facility_id: facility.id,
+        district_id: facility.district_id,
+        error_message: insertError.message,
+        metadata: {
+          parsed
+        }
+      })
       
       return new Response(
         JSON.stringify({
@@ -412,6 +494,18 @@ serve(async (req) => {
     }
 
     console.log('✅ Report saved successfully:', report.id)
+    await logInboundSMS(supabase, {
+      status: 'processed',
+      phone_from: incomingSMS.from,
+      message: incomingSMS.text,
+      provider_message_id: incomingSMS.id,
+      facility_id: facility.id,
+      district_id: facility.district_id,
+      metadata: {
+        report_id: report.id,
+        parsed
+      }
+    })
 
     // Success response
     const response = {
