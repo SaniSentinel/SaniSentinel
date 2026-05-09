@@ -11,6 +11,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const { summary } = useAlerts({ includeSummary: true })
   const { user, signOut } = useAuth()
+  const isAdminUser = user?.role === 'admin' || user?.role === 'system_admin'
 
   const handleLogout = async () => {
     try {
@@ -32,6 +33,30 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
     { name: 'Reports', href: '/reports', icon: '📝', current: location.pathname === '/reports' },
     { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: location.pathname === '/maintenance' },
     { name: 'Workers', href: '/workers', icon: '👥', current: location.pathname === '/workers' },
+  ]
+
+  const adminSidebarSections = [
+    {
+      title: 'System Config',
+      items: [
+        { name: 'Admin Dashboard', href: '/admin-dashboard', icon: '⚙️' },
+        { name: 'Risk Config', href: '/admin/system-config', icon: '🎛️' },
+        { name: 'GIS Map', href: '/admin/gis-map', icon: '🗺️' },
+        { name: 'SMS Gateway Logs', href: '/admin/sms-logs', icon: '📱' }
+      ]
+    },
+    {
+      title: 'User Management',
+      items: [
+        { name: 'District Officer Accounts', href: '/admin/users', icon: '👥' }
+      ]
+    },
+    {
+      title: 'National Reports',
+      items: [
+        { name: 'Reports & Exports', href: '/admin/reports-exports', icon: '📊' }
+      ]
+    }
   ]
 
   const quickStats = [
@@ -115,27 +140,29 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
         </div>
       </nav>
 
-      {/* Secondary Navigation */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8" aria-label="Tabs">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`${
-                  item.current
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
-              >
-                <span>{item.icon}</span>
-                <span>{item.name}</span>
-              </Link>
-            ))}
-          </nav>
+      {/* Secondary Navigation for non-admin views */}
+      {!isAdminUser && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`${
+                    item.current
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Page Header */}
       {(title || subtitle || actions) && (
@@ -153,9 +180,46 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+      {isAdminUser ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <aside className="w-full lg:w-72 bg-white rounded-xl border border-gray-200 shadow-sm p-4 h-fit">
+              {adminSidebarSections.map((section) => (
+                <div key={section.title} className="mb-6 last:mb-0">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{section.title}</h3>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const active = location.pathname === item.href
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                            active
+                              ? 'bg-green-50 text-green-700 font-medium'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span>{item.icon}</span>
+                          <span>{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </aside>
+
+            <main className="flex-1 min-w-0">
+              {children}
+            </main>
+          </div>
+        </div>
+      ) : (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+      )}
 
       {/* Alerts Sidebar */}
       <AlertsSidebar 

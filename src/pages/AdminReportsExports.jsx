@@ -167,6 +167,11 @@ const AdminReportsExports = () => {
     try {
       setLoading(true)
       setError(null)
+
+      if (new Date(startDate) > new Date(endDate)) {
+        throw new Error('Start date must be before or equal to end date.')
+      }
+
       const fromIso = new Date(`${startDate}T00:00:00`).toISOString()
       const toIso = new Date(`${endDate}T23:59:59`).toISOString()
 
@@ -330,6 +335,12 @@ const AdminReportsExports = () => {
           <button onClick={exportPdf} disabled={!exportRows.length} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50">Export PDF</button>
           <span className="text-sm text-gray-600 self-center">{loading ? 'Loading...' : `${exportRows.length} rows loaded`}</span>
         </div>
+
+        {exportRows.length > 0 && (
+          <div className="mt-4 text-xs text-gray-500">
+            Export scope: {selectedDistrict === 'all' ? 'All districts' : districts.find((d) => d.id === selectedDistrict)?.name} • {startDate} to {endDate}
+          </div>
+        )}
       </div>
     </AppLayout>
   )

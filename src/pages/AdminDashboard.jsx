@@ -1,12 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/Layout/AppLayout'
-import { useAuth } from '../hooks/useAuth'
 import { useDashboard } from '../hooks/useDashboard'
-import { supabase } from '../lib/supabase'
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
   const { stats, activity, facilityDistribution, loading, error, refresh, lastUpdated } = useDashboard({
     autoRefresh: true,
     refreshInterval: 30000,
@@ -14,24 +11,7 @@ const AdminDashboard = () => {
     includeMetrics: false
   })
 
-  if (user?.role !== 'admin' && user?.role !== 'system_admin') {
-    return null
-  }
-
   const openTasks = (activity.maintenance.pending || 0) + (activity.maintenance.inProgress || 0)
-  const [riskConfig, setRiskConfig] = React.useState({
-    climate_weight: 0.3,
-    condition_weight: 1,
-    maintenance_weight: 1,
-    reports_weight: 1,
-    location_weight: 1,
-    critical_threshold: 80,
-    high_threshold: 60,
-    medium_threshold: 40,
-    low_threshold: 20
-  })
-  const [savingConfig, setSavingConfig] = React.useState(false)
-  const [riskConfigMessage, setRiskConfigMessage] = React.useState('')
   const districtComparison = Object.entries(facilityDistribution || {}).map(([districtName, districtStats]) => {
     const weightedRisk =
       ((districtStats.atRisk || 0) * 45) +
@@ -75,54 +55,13 @@ const AdminDashboard = () => {
     }
   ]
 
-  React.useEffect(() => {
-    const loadRiskConfig = async () => {
-      const { data, error: cfgError } = await supabase
-        .rpc('get_active_risk_scoring_config')
-        .single()
-
-      if (!cfgError && data) {
-        setRiskConfig({
-          climate_weight: Number(data.climate_weight ?? 0.3),
-          condition_weight: Number(data.condition_weight ?? 1),
-          maintenance_weight: Number(data.maintenance_weight ?? 1),
-          reports_weight: Number(data.reports_weight ?? 1),
-          location_weight: Number(data.location_weight ?? 1),
-          critical_threshold: Number(data.critical_threshold ?? 80),
-          high_threshold: Number(data.high_threshold ?? 60),
-          medium_threshold: Number(data.medium_threshold ?? 40),
-          low_threshold: Number(data.low_threshold ?? 20)
-        })
-      }
-    }
-
-    loadRiskConfig()
-  }, [])
-
-  const saveRiskConfig = async () => {
-    try {
-      setSavingConfig(true)
-      setRiskConfigMessage('')
-      const { error: upsertError } = await supabase.rpc('upsert_risk_scoring_config', {
-        p_climate_weight: riskConfig.climate_weight,
-        p_condition_weight: riskConfig.condition_weight,
-        p_maintenance_weight: riskConfig.maintenance_weight,
-        p_reports_weight: riskConfig.reports_weight,
-        p_location_weight: riskConfig.location_weight,
-        p_critical_threshold: riskConfig.critical_threshold,
-        p_high_threshold: riskConfig.high_threshold,
-        p_medium_threshold: riskConfig.medium_threshold,
-        p_low_threshold: riskConfig.low_threshold
-      })
-
-      if (upsertError) throw upsertError
-      setRiskConfigMessage('Risk scoring config saved.')
-    } catch (cfgError) {
-      setRiskConfigMessage(`Failed to save config: ${cfgError.message}`)
-    } finally {
-      setSavingConfig(false)
-    }
-  }
+  const activitySummary = [
+    { label: 'Reports (7d)', value: activity.reports.total, color: 'bg-blue-600' },
+    { label: 'Alerts (7d)', value: activity.alerts.total, color: 'bg-amber-500' },
+    { label: 'Tasks Completed (7d)', value: activity.maintenance.completed, color: 'bg-green-600' },
+    { label: 'Tasks Pending', value: activity.maintenance.pending, color: 'bg-red-600' }
+  ]
+  const maxActivity = Math.max(...activitySummary.map((item) => item.value), 1)
 
   return (
     <AppLayout
@@ -171,6 +110,29 @@ const AdminDashboard = () => {
           >
             Open GIS Map
           </Link>
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Overview of Activities</h2>
+          <span className="text-sm text-gray-500">Last 7 days + current pending tasks</span>
+        </div>
+        <div className="space-y-3">
+          {activitySummary.map((item) => {
+            const width = Math.max(4, Math.round((item.value / maxActivity) * 100))
+            return (
+              <div key={item.label}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-gray-700">{item.label}</span>
+                  <span className="font-semibold text-gray-900">{item.value}</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className={`h-full ${item.color}`} style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -251,97 +213,6 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Risk Scoring Config</h2>
-          <button
-            onClick={saveRiskConfig}
-            disabled={savingConfig}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-60"
-          >
-            {savingConfig ? 'Saving...' : 'Save Config'}
-          </button>
-        </div>
-
-        {riskConfigMessage && (
-          <p className="text-sm text-gray-600 mb-4">{riskConfigMessage}</p>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <label className="text-sm text-gray-700">
-            Climate Weight
-            <input
-              type="number"
-              min="0"
-              max="3"
-              step="0.05"
-              value={riskConfig.climate_weight}
-              onChange={(e) => setRiskConfig({ ...riskConfig, climate_weight: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-          <label className="text-sm text-gray-700">
-            Condition Weight
-            <input
-              type="number"
-              min="0"
-              max="3"
-              step="0.05"
-              value={riskConfig.condition_weight}
-              onChange={(e) => setRiskConfig({ ...riskConfig, condition_weight: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-          <label className="text-sm text-gray-700">
-            Maintenance Weight
-            <input
-              type="number"
-              min="0"
-              max="3"
-              step="0.05"
-              value={riskConfig.maintenance_weight}
-              onChange={(e) => setRiskConfig({ ...riskConfig, maintenance_weight: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-          <label className="text-sm text-gray-700">
-            Reports Weight
-            <input
-              type="number"
-              min="0"
-              max="3"
-              step="0.05"
-              value={riskConfig.reports_weight}
-              onChange={(e) => setRiskConfig({ ...riskConfig, reports_weight: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-          <label className="text-sm text-gray-700">
-            Location Weight
-            <input
-              type="number"
-              min="0"
-              max="3"
-              step="0.05"
-              value={riskConfig.location_weight}
-              onChange={(e) => setRiskConfig({ ...riskConfig, location_weight: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-          <label className="text-sm text-gray-700">
-            Critical Threshold
-            <input
-              type="number"
-              min="1"
-              max="100"
-              step="1"
-              value={riskConfig.critical_threshold}
-              onChange={(e) => setRiskConfig({ ...riskConfig, critical_threshold: Number(e.target.value) })}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </label>
-        </div>
-      </div>
     </AppLayout>
   )
 }

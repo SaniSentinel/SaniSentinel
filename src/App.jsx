@@ -33,6 +33,7 @@ import LoginSimple from './pages/LoginSimple'
 import RouteTestPage from './pages/RouteTestPage'
 import UserManagement from './pages/UserManagement'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminSystemConfig from './pages/AdminSystemConfig'
 import AdminGISMap from './pages/AdminGISMap'
 import AdminSmsGatewayLog from './pages/AdminSmsGatewayLog'
 import AdminReportsExports from './pages/AdminReportsExports'
@@ -128,6 +129,12 @@ function App() {
         <Route path="/admin/gis-map" element={
           <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
             <AdminGISMap />
+          </AuthGuard>
+        } />
+
+        <Route path="/admin/system-config" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+            <AdminSystemConfig />
           </AuthGuard>
         } />
 
