@@ -14,6 +14,12 @@ export { default as DashboardSimple } from './DashboardSimple'
 export { default as DashboardDebug } from './DashboardDebug'
 export { default as DashboardNav } from './DashboardNav'
 
+// Authentication
+export { default as Login } from './Login'
+
+// Landing Page
+export { default as LandingPage } from './LandingPage'
+
 // Professional UI Components
 export { default as ProfessionalHome } from './ProfessionalHome'
 export { default as ProfessionalDashboard } from './ProfessionalDashboard'

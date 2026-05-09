@@ -9,7 +9,8 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "setup-db": "node scripts/setup-database-direct.js",
-    "setup-db-full": "node scripts/setup-database-with-facilities.js"
+    "setup-db-full": "node scripts/setup-database-with-facilities.js",
+    "create-test-users": "node scripts/create-test-users.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",

@@ -9,19 +9,28 @@ import ProfessionalReports from './pages/ProfessionalReports'
 import ProfessionalMaintenance from './pages/ProfessionalMaintenance'
 import ProfessionalWorkers from './pages/ProfessionalWorkers'
 
+// Landing Page
+import LandingPage from './pages/LandingPage'
+
 // Legacy components (for backward compatibility)
 import { Home, MapView } from './pages'
 import FacilityMap from './pages/FacilityMap'
 
 // Demo components
 import AddFacilityDemo from './pages/AddFacilityDemo'
+import Login from './pages/Login'
+import LoginTest from './pages/LoginTest'
+import LoginSimple from './pages/LoginSimple'
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Landing Page (Default) */}
+        <Route path="/" element={<LandingPage />} />
+        
         {/* Professional UI Routes (Primary) */}
-        <Route path="/" element={<ProfessionalHome />} />
+        <Route path="/home" element={<ProfessionalHome />} />
         <Route path="/professional-dashboard" element={<ProfessionalDashboard />} />
         <Route path="/professional-facility-map" element={<ProfessionalFacilityMap />} />
         <Route path="/professional-reports" element={<ProfessionalReports />} />
@@ -37,6 +46,9 @@ function App() {
         
         {/* Demo routes */}
         <Route path="/demo/add-facility" element={<AddFacilityDemo />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/login-test" element={<LoginTest />} />
+        <Route path="/login-simple" element={<LoginSimple />} />
         
         {/* Legacy routes (for backward compatibility) */}
         <Route path="/legacy-home" element={<Home />} />
