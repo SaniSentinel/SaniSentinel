@@ -15,5 +15,11 @@ export { default as AddFacilityForm } from './AddFacilityForm'
 export { default as AddFacilityModal } from './AddFacilityModal'
 export { default as FacilityMapWithAddButton } from './FacilityMapWithAddButton'
 
+// Auth Components
+export { default as AuthGuard } from './AuthGuard'
+export { default as SimpleAuthGuard } from './SimpleAuthGuard'
+export { default as AuthGuardWithHook } from './AuthGuardWithHook'
+export { default as ProtectedRoute, AdminRoute, OfficerRoute, WorkerRoute, AnyAuthenticatedRoute } from './ProtectedRoute'
+
 // Layout Components
 export { default as AppLayout } from './Layout/AppLayout'
