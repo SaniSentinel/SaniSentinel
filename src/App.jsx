@@ -30,6 +30,7 @@ import LoginBasic from './pages/LoginBasic'
 import LoginDirect from './pages/LoginDirect'
 import LoginTest from './pages/LoginTest'
 import LoginSimple from './pages/LoginSimple'
+import RouteTestPage from './pages/RouteTestPage'
 import UserManagement from './pages/UserManagement'
 
 function App() {
@@ -44,122 +45,130 @@ function App() {
         <Route path="/login-test" element={<LoginTest />} />
         <Route path="/login-simple" element={<LoginSimple />} />
         
-        {/* Protected Routes (Authentication Required) */}
+        {/* Dashboard Routes (All Protected with AuthGuard) */}
         <Route path="/home" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <ProfessionalHome />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/dashboard" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <ProfessionalDashboard />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/professional-dashboard" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <ProfessionalDashboard />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/facility-map" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <ProfessionalFacilityMap />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/professional-facility-map" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <ProfessionalFacilityMap />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
+        {/* Officer Level Dashboard Routes */}
         <Route path="/reports" element={
-          <OfficerRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
             <ProfessionalReports />
-          </OfficerRoute>
+          </AuthGuard>
         } />
         
         <Route path="/professional-reports" element={
-          <OfficerRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
             <ProfessionalReports />
-          </OfficerRoute>
+          </AuthGuard>
         } />
         
         <Route path="/maintenance" element={
-          <OfficerRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
             <ProfessionalMaintenance />
-          </OfficerRoute>
+          </AuthGuard>
         } />
         
         <Route path="/professional-maintenance" element={
-          <OfficerRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
             <ProfessionalMaintenance />
-          </OfficerRoute>
+          </AuthGuard>
         } />
         
+        {/* Admin Only Dashboard Routes */}
         <Route path="/workers" element={
-          <AdminRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
             <ProfessionalWorkers />
-          </AdminRoute>
+          </AuthGuard>
         } />
         
         <Route path="/professional-workers" element={
-          <AdminRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
             <ProfessionalWorkers />
-          </AdminRoute>
+          </AuthGuard>
         } />
         
-        {/* Admin Routes */}
+        {/* Admin Management Routes */}
         <Route path="/admin/users" element={
-          <AdminRoute>
+          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
             <UserManagement />
-          </AdminRoute>
+          </AuthGuard>
         } />
         
-        {/* Demo routes (Protected) */}
+        {/* Demo Routes (Protected) */}
         <Route path="/demo/add-facility" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <AddFacilityDemo />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/demo/auth" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <AuthDemo />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/demo/auth-guard" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <AuthGuardDemo />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/test/auth" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <AuthTestPage />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
-        {/* Legacy routes (Protected) */}
+        <Route path="/test/routes" element={
+          <AuthGuard redirectTo="/login">
+            <RouteTestPage />
+          </AuthGuard>
+        } />
+        
+        {/* Legacy Routes (Protected) */}
         <Route path="/legacy-home" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <Home />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/legacy-facility-map" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <FacilityMap />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         <Route path="/map" element={
-          <AnyAuthenticatedRoute>
+          <AuthGuard redirectTo="/login">
             <MapView />
-          </AnyAuthenticatedRoute>
+          </AuthGuard>
         } />
         
         {/* Catch-all redirect */}
