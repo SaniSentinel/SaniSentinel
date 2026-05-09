@@ -13,6 +13,9 @@ import ProfessionalWorkers from './pages/ProfessionalWorkers'
 import { Home, MapView } from './pages'
 import FacilityMap from './pages/FacilityMap'
 
+// Demo components
+import AddFacilityDemo from './pages/AddFacilityDemo'
+
 function App() {
   return (
     <Router>
@@ -31,6 +34,9 @@ function App() {
         <Route path="/reports" element={<ProfessionalReports />} />
         <Route path="/maintenance" element={<ProfessionalMaintenance />} />
         <Route path="/workers" element={<ProfessionalWorkers />} />
+        
+        {/* Demo routes */}
+        <Route path="/demo/add-facility" element={<AddFacilityDemo />} />
         
         {/* Legacy routes (for backward compatibility) */}
         <Route path="/legacy-home" element={<Home />} />
