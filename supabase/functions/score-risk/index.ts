@@ -53,6 +53,18 @@ interface RiskAssessment {
   action_required: string[]
 }
 
+interface RiskConfig {
+  climate_weight: number
+  condition_weight: number
+  maintenance_weight: number
+  reports_weight: number
+  location_weight: number
+  critical_threshold: number
+  high_threshold: number
+  medium_threshold: number
+  low_threshold: number
+}
+
 // Calculate days since last service
 function daysSinceLastService(lastServiced: string | null): number {
   if (!lastServiced) return 365 // Assume 1 year if never serviced
@@ -146,19 +158,19 @@ function calculateLocationRisk(facilityType: string, climateData: ClimateSnapsho
 }
 
 // Determine recommended status based on risk score
-function getRecommendedStatus(riskScore: number, currentStatus: string): string {
-  if (riskScore >= 80) return 'out_of_service'
-  if (riskScore >= 60) return 'overflow'
-  if (riskScore >= 40) return 'damaged'
-  if (riskScore >= 20) return 'dry'
+function getRecommendedStatus(riskScore: number, config: RiskConfig): string {
+  if (riskScore >= config.critical_threshold) return 'out_of_service'
+  if (riskScore >= config.high_threshold) return 'overflow'
+  if (riskScore >= config.medium_threshold) return 'damaged'
+  if (riskScore >= config.low_threshold) return 'dry'
   return 'good'
 }
 
 // Determine priority level
-function getPriorityLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
-  if (riskScore >= 80) return 'critical'
-  if (riskScore >= 60) return 'high'
-  if (riskScore >= 40) return 'medium'
+function getPriorityLevel(riskScore: number, config: RiskConfig): 'low' | 'medium' | 'high' | 'critical' {
+  if (riskScore >= config.critical_threshold) return 'critical'
+  if (riskScore >= config.high_threshold) return 'high'
+  if (riskScore >= config.medium_threshold) return 'medium'
   return 'low'
 }
 
@@ -252,6 +264,41 @@ serve(async (req) => {
       )
     }
 
+    // Get active risk scoring configuration, fallback to defaults
+    const defaultConfig: RiskConfig = {
+      climate_weight: 0.3,
+      condition_weight: 1,
+      maintenance_weight: 1,
+      reports_weight: 1,
+      location_weight: 1,
+      critical_threshold: 80,
+      high_threshold: 60,
+      medium_threshold: 40,
+      low_threshold: 20
+    }
+
+    const { data: riskConfigRow, error: riskConfigError } = await supabase
+      .rpc('get_active_risk_scoring_config')
+      .single()
+
+    if (riskConfigError) {
+      console.warn('⚠️ Could not fetch risk config, using defaults:', riskConfigError)
+    }
+
+    const riskConfig: RiskConfig = riskConfigRow
+      ? {
+          climate_weight: Number(riskConfigRow.climate_weight ?? defaultConfig.climate_weight),
+          condition_weight: Number(riskConfigRow.condition_weight ?? defaultConfig.condition_weight),
+          maintenance_weight: Number(riskConfigRow.maintenance_weight ?? defaultConfig.maintenance_weight),
+          reports_weight: Number(riskConfigRow.reports_weight ?? defaultConfig.reports_weight),
+          location_weight: Number(riskConfigRow.location_weight ?? defaultConfig.location_weight),
+          critical_threshold: Number(riskConfigRow.critical_threshold ?? defaultConfig.critical_threshold),
+          high_threshold: Number(riskConfigRow.high_threshold ?? defaultConfig.high_threshold),
+          medium_threshold: Number(riskConfigRow.medium_threshold ?? defaultConfig.medium_threshold),
+          low_threshold: Number(riskConfigRow.low_threshold ?? defaultConfig.low_threshold)
+        }
+      : defaultConfig
+
     // Get latest climate data for all districts
     const { data: climateData, error: climateError } = await supabase
       .rpc('get_latest_climate_data')
@@ -300,11 +347,11 @@ serve(async (req) => {
       const climateSnapshot = climateByDistrict.get(facility.district_id)
 
       // Calculate individual risk factors
-      const climateRisk = climateSnapshot ? Math.min(climateSnapshot.flood_risk_score * 0.3, 30) : 15
-      const conditionRisk = calculateConditionRisk(facility.status)
-      const maintenanceRisk = calculateMaintenanceRisk(facility.last_serviced, facility.type)
-      const reportsRisk = calculateReportsRisk(facilityReports)
-      const locationRisk = calculateLocationRisk(facility.type, climateSnapshot)
+      const climateRisk = (climateSnapshot ? Math.min(climateSnapshot.flood_risk_score * 0.3, 30) : 15) * riskConfig.climate_weight
+      const conditionRisk = calculateConditionRisk(facility.status) * riskConfig.condition_weight
+      const maintenanceRisk = calculateMaintenanceRisk(facility.last_serviced, facility.type) * riskConfig.maintenance_weight
+      const reportsRisk = calculateReportsRisk(facilityReports) * riskConfig.reports_weight
+      const locationRisk = calculateLocationRisk(facility.type, climateSnapshot) * riskConfig.location_weight
 
       // Calculate total risk score (0-100)
       const totalRiskScore = Math.min(
@@ -312,8 +359,8 @@ serve(async (req) => {
         100
       )
 
-      const recommendedStatus = getRecommendedStatus(totalRiskScore, facility.status)
-      const priorityLevel = getPriorityLevel(totalRiskScore)
+      const recommendedStatus = getRecommendedStatus(totalRiskScore, riskConfig)
+      const priorityLevel = getPriorityLevel(totalRiskScore, riskConfig)
 
       const riskAssessment: RiskAssessment = {
         facility_id: facility.id,
