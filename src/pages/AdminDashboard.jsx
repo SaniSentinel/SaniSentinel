@@ -177,6 +177,23 @@ const AdminDashboard = () => {
       <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
+            <h2 className="text-lg font-semibold text-gray-900">National Reports & Exports</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Generate monthly national WASH PDF and export CSV/PDF by district/date range.
+            </p>
+          </div>
+          <Link
+            to="/admin/reports-exports"
+            className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            Open Report Generator
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
             <h2 className="text-lg font-semibold text-gray-900">SMS Gateway History</h2>
             <p className="text-sm text-gray-600 mt-1">
               View full inbound and outbound SMS logs across all districts.

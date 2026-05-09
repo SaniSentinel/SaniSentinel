@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import AppLayout from '../components/Layout/AppLayout'
 import StatusBadge from '../components/UI/StatusBadge'
 import MetricCard from '../components/UI/MetricCard'
@@ -34,6 +34,7 @@ const ProfessionalReports = () => {
 
   // Available districts for filtering
   const [availableDistricts, setAvailableDistricts] = useState([])
+  const printableReportRef = useRef(null)
 
   // Load reports data
   const loadReports = useCallback(async () => {
@@ -217,7 +218,35 @@ const ProfessionalReports = () => {
         <span>Refresh</span>
       </button>
       <button
-        onClick={() => window.print()}
+        onClick={() => {
+          if (!printableReportRef.current) return
+          const printWindow = window.open('', '_blank')
+          if (!printWindow) return
+
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>SaniSentinel Reports</title>
+                <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; color: #111827; }
+                  h1 { font-size: 20px; margin-bottom: 6px; }
+                  .meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+                  table { width: 100%; border-collapse: collapse; }
+                  th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; font-size: 12px; vertical-align: top; }
+                  th { background: #f3f4f6; }
+                </style>
+              </head>
+              <body>
+                <h1>SaniSentinel Report</h1>
+                <div class="meta">Generated ${new Date().toLocaleString()}</div>
+                ${printableReportRef.current.innerHTML}
+              </body>
+            </html>
+          `)
+          printWindow.document.close()
+          printWindow.focus()
+          printWindow.print()
+        }}
         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,7 +444,7 @@ const ProfessionalReports = () => {
       </div>
 
       {/* Reports Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div ref={printableReportRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
