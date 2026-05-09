@@ -4,8 +4,16 @@ import StatusBadge from '../components/UI/StatusBadge'
 import MetricCard from '../components/UI/MetricCard'
 import { maintenance } from '../lib/maintenance'
 import { workers } from '../lib/workers'
+import { useAuth } from '../hooks/useAuth'
 
 const ProfessionalMaintenance = () => {
+  const { user } = useAuth()
+  const isOfficer = user?.role === 'district_officer'
+
+  const [districtWorkers, setDistrictWorkers] = useState([])
+  const [notesTask, setNotesTask] = useState(null)
+  const [notesDraft, setNotesDraft] = useState('')
+  const [notesSaving, setNotesSaving] = useState(false)
   const [tasks, setTasks] = useState([])
   const [filteredTasks, setFilteredTasks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -165,6 +173,25 @@ const ProfessionalMaintenance = () => {
     loadTasks()
   }, [loadTasks])
 
+  useEffect(() => {
+    const loadDistrictWorkers = async () => {
+      if (!isOfficer || !user?.district_id) return
+      const res = await workers.getForNotification({ district_id: user.district_id })
+      if (!res.error) {
+        setDistrictWorkers(res.data || [])
+      }
+    }
+    loadDistrictWorkers()
+  }, [isOfficer, user?.district_id])
+
+  useEffect(() => {
+    if (!isOfficer || !loadTasks) return
+    const sub = maintenance.subscribeToTasks(() => {
+      loadTasks()
+    })
+    return () => maintenance.unsubscribe(sub)
+  }, [isOfficer, loadTasks])
+
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({
@@ -183,6 +210,51 @@ const ProfessionalMaintenance = () => {
       worker: 'all',
       overdue: false
     })
+  }
+
+  const handleAssignWorkerChange = async (taskId, workerIdRaw) => {
+    const workerId = workerIdRaw || null
+    try {
+      setActionLoading((prev) => ({ ...prev, [taskId]: true }))
+      if (!workerId) {
+        const result = await maintenance.update(taskId, { assigned_to: null, status: 'pending' })
+        if (result.error) throw new Error(result.error)
+      } else {
+        const result = await maintenance.assign(taskId, workerId)
+        if (result.error) throw new Error(result.error)
+      }
+      await loadTasks()
+    } catch (err) {
+      console.error(err)
+      alert(err.message || 'Could not assign worker')
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [taskId]: false }))
+    }
+  }
+
+  const openNotesModal = (task) => {
+    setNotesTask(task)
+    setNotesDraft(task.officer_notes || '')
+  }
+
+  const closeNotesModal = () => {
+    setNotesTask(null)
+    setNotesDraft('')
+  }
+
+  const saveNotes = async () => {
+    if (!notesTask) return
+    try {
+      setNotesSaving(true)
+      const result = await maintenance.update(notesTask.id, { officer_notes: notesDraft || null })
+      if (result.error) throw new Error(result.error)
+      closeNotesModal()
+      await loadTasks()
+    } catch (err) {
+      alert(err.message || 'Could not save notes')
+    } finally {
+      setNotesSaving(false)
+    }
   }
 
   // Mark task as resolved (completed)
@@ -323,7 +395,11 @@ const ProfessionalMaintenance = () => {
   return (
     <AppLayout 
       title="Maintenance Tasks" 
-      subtitle={`${filteredTasks.length} of ${tasks.length} tasks shown`}
+      subtitle={
+        isOfficer
+          ? `${filteredTasks.length} of ${tasks.length} tasks in your district`
+          : `${filteredTasks.length} of ${tasks.length} tasks shown`
+      }
       actions={actions}
     >
       {/* Summary Cards */}
@@ -441,20 +517,22 @@ const ProfessionalMaintenance = () => {
             </select>
           </div>
 
-          {/* District Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
-            <select 
-              value={filters.district}
-              onChange={(e) => handleFilterChange('district', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="all">All Districts</option>
-              {availableDistricts.map(district => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </select>
-          </div>
+          {/* District Filter — admins see all districts; officers are scoped via RLS */}
+          {!isOfficer && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+              <select 
+                value={filters.district}
+                onChange={(e) => handleFilterChange('district', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="all">All Districts</option>
+                {availableDistricts.map(district => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Worker Filter */}
           <div>
@@ -569,8 +647,22 @@ const ProfessionalMaintenance = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={task.status} size="sm" />
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {task.worker ? (
+                      <td className="px-6 py-4 text-sm text-gray-900 min-w-[10rem]">
+                        {isOfficer ? (
+                          <select
+                            value={task.assigned_to || ''}
+                            disabled={Boolean(actionLoading[task.id]) || task.status === 'completed'}
+                            onChange={(e) => handleAssignWorkerChange(task.id, e.target.value)}
+                            className="w-full max-w-[220px] border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="">Unassigned</option>
+                            {districtWorkers.map((w) => (
+                              <option key={w.id} value={w.id}>
+                                {w.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : task.worker ? (
                           <div>
                             <div className="font-medium">{task.worker.name}</div>
                             <div className="text-gray-500 text-xs">{task.worker.role}</div>
@@ -588,14 +680,23 @@ const ProfessionalMaintenance = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isOfficer && task.status !== 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => openNotesModal(task)}
+                              className="bg-white border border-gray-300 text-gray-800 px-3 py-1 rounded text-xs hover:bg-gray-50"
+                            >
+                              Notes
+                            </button>
+                          )}
                           {task.status !== 'completed' && (
                             <button
                               onClick={() => markAsResolved(task.id)}
                               disabled={actionLoading[task.id]}
                               className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {actionLoading[task.id] ? 'Resolving...' : 'Mark Resolved'}
+                              {actionLoading[task.id] ? 'Resolving...' : 'Mark complete'}
                             </button>
                           )}
                           
@@ -685,6 +786,41 @@ const ProfessionalMaintenance = () => {
           </>
         )}
       </div>
+
+      {notesTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Task notes</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {getTaskTypeDisplay(notesTask.task_type)} · {notesTask.facility?.name || 'Facility'}
+            </p>
+            <textarea
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              rows={5}
+              className="mt-4 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Instructions, follow-ups, or completion details for your team..."
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeNotesModal}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveNotes}
+                disabled={notesSaving}
+                className="px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {notesSaving ? 'Saving…' : 'Save notes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }

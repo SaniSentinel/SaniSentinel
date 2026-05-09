@@ -14,6 +14,8 @@ import ProfessionalMaintenance from './pages/ProfessionalMaintenance'
 import ProfessionalWorkers from './pages/ProfessionalWorkers'
 import OfficerDashboard from './pages/OfficerDashboard'
 import OfficerDistrictMap from './pages/OfficerDistrictMap'
+import OfficerAlerts from './pages/OfficerAlerts'
+import OfficerWorkers from './pages/OfficerWorkers'
 
 // Landing Page
 import LandingPage from './pages/LandingPage'
@@ -92,6 +94,18 @@ function App() {
         <Route path="/officer-map" element={
           <AuthGuard redirectTo="/login" allowedRoles={['district_officer']}>
             <OfficerDistrictMap />
+          </AuthGuard>
+        } />
+
+        <Route path="/officer-alerts" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer']}>
+            <OfficerAlerts />
+          </AuthGuard>
+        } />
+
+        <Route path="/officer-workers" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer']}>
+            <OfficerWorkers />
           </AuthGuard>
         } />
         

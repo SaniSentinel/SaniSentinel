@@ -27,13 +27,25 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
     }
   }
 
-  const navigation = [
-    { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : (user?.role === 'district_officer' ? '/officer-dashboard' : '/dashboard'), icon: '📊', current: location.pathname === '/dashboard' || location.pathname === '/admin-dashboard' || location.pathname === '/officer-dashboard' },
-    { name: 'Facility Map', href: user?.role === 'district_officer' ? '/officer-map' : '/facility-map', icon: '🗺️', current: location.pathname === '/facility-map' || location.pathname === '/officer-map' },
-    { name: 'Reports', href: '/reports', icon: '📝', current: location.pathname === '/reports' },
-    { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: location.pathname === '/maintenance' },
-    { name: 'Workers', href: '/workers', icon: '👥', current: location.pathname === '/workers' },
-  ]
+  const path = location.pathname
+  const isOfficer = user?.role === 'district_officer'
+
+  const navigation = isOfficer
+    ? [
+        { name: 'Overview', href: '/officer-dashboard', icon: '📊', current: path === '/officer-dashboard' },
+        { name: 'Facility Map', href: '/officer-map', icon: '🗺️', current: path === '/officer-map' },
+        { name: 'My Alerts', href: '/officer-alerts', icon: '🚨', current: path === '/officer-alerts' },
+        { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
+        { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
+        { name: 'My Workers', href: '/officer-workers', icon: '👥', current: path === '/officer-workers' },
+      ]
+    : [
+        { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : '/dashboard', icon: '📊', current: path === '/dashboard' || path === '/admin-dashboard' },
+        { name: 'Facility Map', href: '/facility-map', icon: '🗺️', current: path === '/facility-map' || path === '/professional-facility-map' },
+        { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
+        { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
+        { name: 'Workers', href: '/workers', icon: '👥', current: path === '/workers' || path === '/professional-workers' },
+      ]
 
   const adminSidebarSections = [
     {
@@ -73,7 +85,10 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
           <div className="flex justify-between h-16">
             {/* Logo and Brand */}
             <div className="flex items-center">
-              <Link to="/dashboard" className="flex items-center space-x-3">
+              <Link
+                to={isAdminUser ? '/admin-dashboard' : (isOfficer ? '/officer-dashboard' : '/dashboard')}
+                className="flex items-center space-x-3"
+              >
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">SS</span>
