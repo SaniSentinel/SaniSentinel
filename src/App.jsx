@@ -18,6 +18,8 @@ import FacilityMap from './pages/FacilityMap'
 
 // Demo components
 import AddFacilityDemo from './pages/AddFacilityDemo'
+import AuthDemo from './pages/AuthDemo'
+import AuthTestPage from './pages/AuthTestPage'
 import Login from './pages/Login'
 import LoginTest from './pages/LoginTest'
 import LoginSimple from './pages/LoginSimple'
@@ -46,6 +48,8 @@ function App() {
         
         {/* Demo routes */}
         <Route path="/demo/add-facility" element={<AddFacilityDemo />} />
+        <Route path="/demo/auth" element={<AuthDemo />} />
+        <Route path="/test/auth" element={<AuthTestPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/login-test" element={<LoginTest />} />
         <Route path="/login-simple" element={<LoginSimple />} />

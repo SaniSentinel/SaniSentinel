@@ -1,46 +1,33 @@
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { signIn, loading, error, isAuthenticated } = useAuth()
 
-  // Check if user is already logged in
+  // Redirect if already authenticated
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        window.location.href = '/dashboard'
-      }
+    if (isAuthenticated) {
+      window.location.href = '/dashboard'
     }
-    checkUser()
-  }, [])
+  }, [isAuthenticated])
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) throw error
-
-      console.log('Login successful:', data)
+      const result = await signIn(email, password)
       
-      // Redirect to dashboard
-      window.location.href = '/dashboard'
+      if (result.error) {
+        console.error('Login failed:', result.error)
+      } else {
+        console.log('Login successful:', result.user)
+        // Redirect will happen automatically via useEffect
+      }
       
     } catch (err) {
       console.error('Login error:', err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
     }
   }
 
