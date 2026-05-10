@@ -12,7 +12,8 @@
     "setup-db-full": "node scripts/setup-database-with-facilities.js",
     "create-test-users": "node scripts/create-test-users.js",
     "update-user-metadata": "node scripts/update-user-metadata.js",
-    "test:rls-officer-facilities": "node scripts/test-rls-facilities-officer.mjs"
+    "test:rls-officer-facilities": "node scripts/test-rls-facilities-officer.mjs",
+    "test:inbound-sms": "node scripts/test-inbound-sms-e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",

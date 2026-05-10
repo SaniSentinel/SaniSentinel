@@ -1,0 +1,5 @@
+# Inbound SMS is called by Africa's Talking servers without a Supabase user JWT.
+# Disable JWT verification so POSTs from their webhook are accepted.
+# Redeploy after changing: supabase functions deploy inbound-sms
+[functions.inbound-sms]
+verify_jwt = false

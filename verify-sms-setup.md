@@ -1,10 +1,10 @@
 # ✅ SMS Setup Verification
 
 ## 🔑 API Key Configuration
-Your Africa's Talking API key has been added to your `.env` file:
+Add your Africa's Talking credentials to `.env` (never commit real keys):
 
 ```env
-AFRICAS_TALKING_API_KEY=atsk_56cc647e4593a9b12d5d85db3d9f2746f4c23a7bd297d9f90e1827a8245520adaaeab07b
+AFRICAS_TALKING_API_KEY=your_api_key_here
 AFRICAS_TALKING_USERNAME=sandbox
 ```
 

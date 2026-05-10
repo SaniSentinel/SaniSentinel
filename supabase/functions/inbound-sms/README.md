@@ -1,6 +1,8 @@
 # Inbound SMS Edge Function
 
-This Edge Function processes incoming SMS messages from field workers reporting facility conditions. It parses messages in the format `F{id}#{block}#{CONDITION}` and automatically creates reports in the database.
+Canonical SMS grammar and field rules: **[docs/SMS_REPORT_FORMAT.md](../../docs/SMS_REPORT_FORMAT.md)** (`F{facility_id}#{block}#{CONDITION}`).
+
+This Edge Function processes incoming SMS messages from field workers reporting facility conditions, parses that pattern, and creates rows in `reports`.
 
 ## Features
 
@@ -54,14 +56,28 @@ F101#MAIN#blocked    - Facility 101, Main block, Blocked
 supabase functions deploy inbound-sms
 ```
 
-### 2. Configure Africa's Talking Webhook
+### 2. Register the incoming SMS URL (Africa's Talking Sandbox or Production)
 
-1. **Login to Africa's Talking Dashboard**
-2. **Go to SMS → Callback URLs**
-3. **Set Delivery Reports URL**:
-   ```
-   https://your-project.supabase.co/functions/v1/inbound-sms
-   ```
+Africa's Talking sends **incoming SMS** as an HTTP POST (usually `application/x-www-form-urlencoded`).  
+**Do not** use the *delivery report* URL for this — you need the **incoming / sandbox callback** that receives `text` and `from`.
+
+1. Sign in to [Africa's Talking](https://account.africastalking.com/).
+2. **Sandbox (testing)**  
+   - Open **SMS** (or **Sandbox**) and find **Incoming Messages**, **Simulator**, or **Webhooks** (labels vary by account version).  
+   - Set the **Callback URL** (sometimes “Link to your application”) to your deployed function URL (below).
+3. **Production**  
+   - Under **SMS** → your short code or sender ID → set **Incoming SMS URL** / **Webhook URL** to the same endpoint.
+
+**Function URL** (replace project ref):
+
+```
+https://<project-ref>.supabase.co/functions/v1/inbound-sms
+```
+
+**Webhook authentication:** third-party servers do not send Supabase user JWTs. The repo includes `supabase/config.toml` with `verify_jwt = false` for `inbound-sms`. Redeploy after pulling: `supabase functions deploy inbound-sms`.  
+Alternatively, in **Supabase Dashboard → Edge Functions → inbound-sms**, disable JWT verification if your project uses that toggle.
+
+Optional: some setups pass the anon key as a query parameter (if your Supabase project allows it); prefer `verify_jwt = false` for standard AT webhooks.
 
 ### 3. Test the Function
 
