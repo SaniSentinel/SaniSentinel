@@ -22,7 +22,7 @@ const UserManagement = () => {
 
       const [{ data: accountsData, error: accountsError }, { data: districtData, error: districtError }] = await Promise.all([
         supabase.rpc('list_district_officer_accounts'),
-        supabase.from('districts').select('id, name, region').order('name')
+        supabase.from('districts').select('id, name, region').eq('region', 'Northern').order('name')
       ])
 
       if (accountsError) throw new Error(accountsError.message)
@@ -48,7 +48,9 @@ const UserManagement = () => {
       setError(null)
 
       const selectedDistrict = districts.find((d) => d.id === form.district_id)
-      const { error: signUpError } = await supabase.auth.signUp({
+      
+      // Create the user with Supabase Auth with comprehensive metadata
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -56,10 +58,14 @@ const UserManagement = () => {
             role: 'district_officer',
             name: form.name,
             district_id: form.district_id,
+            district_name: selectedDistrict?.name || null,
+            district_region: selectedDistrict?.region || 'Northern',
             department: 'Health Department',
             permissions: ['read', 'write', 'manage_facilities'],
             title: 'District Health Officer',
-            district_name: selectedDistrict?.name || null
+            supervised_by: 'officer@tamale.gov',
+            created_by_admin: true,
+            registration_date: new Date().toISOString()
           }
         }
       })
@@ -68,6 +74,18 @@ const UserManagement = () => {
 
       setForm({ email: '', password: '', name: '', district_id: '' })
       await loadAccounts()
+      
+      // Show success message with login instructions
+      alert(`✅ District officer account created successfully!
+
+👤 Name: ${form.name}
+📧 Email: ${form.email}
+🏛️ District: ${selectedDistrict?.name} (${selectedDistrict?.region})
+👨‍💼 Supervised by: officer@tamale.gov
+
+The user can now log in with their email and password credentials.
+They will have access to manage facilities in their assigned district.`)
+      
     } catch (err) {
       setError(err.message)
     } finally {
@@ -142,7 +160,7 @@ const UserManagement = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               required
             >
-              <option value="">Select district</option>
+              <option value="">Select Northern region district</option>
               {districts.map((district) => (
                 <option key={district.id} value={district.id}>
                   {district.name} ({district.region})
@@ -175,6 +193,14 @@ const UserManagement = () => {
                     <p className="text-xs text-gray-500">
                       {account.district_name || 'No district'} • {account.district_region || 'Unknown region'}
                     </p>
+                    <p className="text-xs text-gray-400">
+                      Supervised by: {account.supervised_by || 'officer@tamale.gov'}
+                    </p>
+                    {account.last_sign_in_at && (
+                      <p className="text-xs text-gray-400">
+                        Last login: {new Date(account.last_sign_in_at).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`text-xs px-2 py-1 rounded-full ${
