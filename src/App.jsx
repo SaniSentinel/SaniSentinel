@@ -3,11 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 // Auth Components
 import AuthGuard from './components/AuthGuard'
-import { AdminRoute, OfficerRoute, AnyAuthenticatedRoute } from './components/ProtectedRoute'
 
 // Professional UI Components
 import ProfessionalHome from './pages/ProfessionalHome'
-import ProfessionalDashboard from './pages/ProfessionalDashboard'
 import ProfessionalFacilityMap from './pages/ProfessionalFacilityMap'
 import ProfessionalReports from './pages/ProfessionalReports'
 import ProfessionalMaintenance from './pages/ProfessionalMaintenance'
@@ -41,6 +39,7 @@ import AdminSystemConfig from './pages/AdminSystemConfig'
 import AdminGISMap from './pages/AdminGISMap'
 import AdminSmsGatewayLog from './pages/AdminSmsGatewayLog'
 import AdminReportsExports from './pages/AdminReportsExports'
+import DashboardEntry from './components/DashboardEntry'
 
 function App() {
   return (
@@ -63,13 +62,13 @@ function App() {
         
         <Route path="/dashboard" element={
           <AuthGuard redirectTo="/login">
-            <ProfessionalDashboard />
+            <DashboardEntry />
           </AuthGuard>
         } />
         
         <Route path="/professional-dashboard" element={
           <AuthGuard redirectTo="/login">
-            <ProfessionalDashboard />
+            <DashboardEntry />
           </AuthGuard>
         } />
 
@@ -109,77 +108,77 @@ function App() {
           </AuthGuard>
         } />
         
-        {/* Officer Level Dashboard Routes */}
+        {/* Shared officer + admin tools (national view for admins, district-scoped for officers via RLS) */}
         <Route path="/reports" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'admin', 'system_admin']}>
             <ProfessionalReports />
           </AuthGuard>
         } />
         
         <Route path="/professional-reports" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'admin', 'system_admin']}>
             <ProfessionalReports />
           </AuthGuard>
         } />
         
         <Route path="/maintenance" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'admin', 'system_admin']}>
             <ProfessionalMaintenance />
           </AuthGuard>
         } />
         
         <Route path="/professional-maintenance" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['district_officer', 'admin', 'system_admin']}>
             <ProfessionalMaintenance />
           </AuthGuard>
         } />
         
-        {/* Admin Only Dashboard Routes */}
+        {/* Workers directory — admins only */}
         <Route path="/workers" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <ProfessionalWorkers />
           </AuthGuard>
         } />
         
         <Route path="/professional-workers" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <ProfessionalWorkers />
           </AuthGuard>
         } />
         
         {/* Admin Management Routes */}
         <Route path="/admin-dashboard" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <AdminDashboard />
           </AuthGuard>
         } />
 
         <Route path="/admin/gis-map" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <AdminGISMap />
           </AuthGuard>
         } />
 
         <Route path="/admin/system-config" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <AdminSystemConfig />
           </AuthGuard>
         } />
 
         <Route path="/admin/sms-logs" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <AdminSmsGatewayLog />
           </AuthGuard>
         } />
 
         <Route path="/admin/reports-exports" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <AdminReportsExports />
           </AuthGuard>
         } />
 
         <Route path="/admin/users" element={
-          <AuthGuard redirectTo="/login" allowedRoles={['system_admin']}>
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <UserManagement />
           </AuthGuard>
         } />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getRoleHomePathFromUser } from '../lib/roleRouting'
 
 const LoginBasic = () => {
   const [email, setEmail] = useState('')
@@ -30,7 +31,7 @@ const LoginBasic = () => {
       
       // Redirect after successful login
       setTimeout(() => {
-        window.location.href = '/dashboard'
+        window.location.href = getRoleHomePathFromUser(data.user)
       }, 1000)
 
     } catch (err) {

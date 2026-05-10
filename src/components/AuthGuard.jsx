@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getRoleHomePath } from '../lib/roleRouting'
 
 const AuthGuard = ({ children, redirectTo = '/login', allowedRoles = null }) => {
   const [loading, setLoading] = useState(true)
@@ -101,10 +102,10 @@ const AuthGuard = ({ children, redirectTo = '/login', allowedRoles = null }) => 
                 Go Back
               </button>
               <a
-                href="/dashboard"
+                href={getRoleHomePath(user.user_metadata?.role)}
                 className="block w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-center"
               >
-                Go to Dashboard
+                Go to your dashboard
               </a>
             </div>
           </div>

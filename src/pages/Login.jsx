@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks'
+import { getRoleHomePath } from '../lib/roleRouting'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { signIn, loading, error, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const { signIn, loading, error, isAuthenticated, user } = useAuth()
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated → role home (admin / officer / default)
   useEffect(() => {
-    if (isAuthenticated) {
-      window.location.href = '/dashboard'
-    }
-  }, [isAuthenticated])
+    if (!isAuthenticated || !user) return
+    navigate(getRoleHomePath(user.role), { replace: true })
+  }, [isAuthenticated, user, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { getRoleHomePathFromUser } from '../lib/roleRouting'
 
 const LoginDirect = () => {
   const [email, setEmail] = useState('')
@@ -14,8 +15,7 @@ const LoginDirect = () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
-        // Redirect to dashboard if already logged in
-        window.location.href = '/dashboard'
+        window.location.href = getRoleHomePathFromUser(user)
       }
     }
     checkUser()
@@ -40,8 +40,7 @@ const LoginDirect = () => {
       console.log('Login successful:', data.user)
       setUser(data.user)
       
-      // Redirect to dashboard on successful login
-      window.location.href = '/dashboard'
+      window.location.href = getRoleHomePathFromUser(data.user)
       
     } catch (err) {
       console.error('Login error:', err)
