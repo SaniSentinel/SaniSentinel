@@ -39,6 +39,7 @@ import AdminSystemConfig from './pages/AdminSystemConfig'
 import AdminGISMap from './pages/AdminGISMap'
 import AdminSmsGatewayLog from './pages/AdminSmsGatewayLog'
 import AdminReportsExports from './pages/AdminReportsExports'
+import AdminDebug from './pages/AdminDebug'
 import DashboardEntry from './components/DashboardEntry'
 
 function App() {
@@ -180,6 +181,12 @@ function App() {
         <Route path="/admin/users" element={
           <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
             <UserManagement />
+          </AuthGuard>
+        } />
+
+        <Route path="/admin/debug" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
+            <AdminDebug />
           </AuthGuard>
         } />
         
