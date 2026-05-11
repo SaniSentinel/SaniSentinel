@@ -18,6 +18,22 @@ interface FacilityLookup {
   districts: { name: string; region: string }
 }
 
+interface WorkerLookup {
+  id: string
+  name: string
+  district_id: string
+}
+
+interface TaskLookup {
+  id: string
+  status: string
+  priority: string
+  task_type: string
+  due_date: string
+  officer_notes?: string | null
+  facility: { id: string; name: string } | null
+}
+
 const CON = (msg: string) =>
   new Response(`CON ${msg}`, { headers: { "Content-Type": "text/plain" } })
 
@@ -38,6 +54,12 @@ const CONDITIONS: Record<string, string> = {
   "3": "overflow",
   "4": "dry",
   "5": "blocked",
+}
+
+const TASK_STATUS_OPTIONS: Record<string, { label: string; status: string; severity: "low" | "medium" | "high" | "critical" }> = {
+  "1": { label: "Started", status: "in_progress", severity: "low" },
+  "2": { label: "Completed", status: "completed", severity: "low" },
+  "3": { label: "Blocked/Delayed", status: "in_progress", severity: "high" },
 }
 
 function normalizeGhPhone(raw: string): string {
@@ -76,6 +98,61 @@ async function getWorkerFirstName(phone: string): Promise<string> {
     .limit(1)
     .maybeSingle()
   return data?.name?.split(" ")[0] ?? "Worker"
+}
+
+async function getWorkerByPhone(phone: string, phoneRaw: string): Promise<WorkerLookup | null> {
+  const { data } = await supabase
+    .from("workers")
+    .select("id, name, district_id")
+    .in("phone", [...new Set([phone, phoneRaw.trim()])])
+    .eq("active", true)
+    .maybeSingle()
+
+  return (data as WorkerLookup | null) || null
+}
+
+async function getWorkerOpenTasks(workerId: string): Promise<TaskLookup[]> {
+  const { data, error } = await supabase
+    .from("maintenance_tasks")
+    .select(`
+      id,
+      status,
+      priority,
+      task_type,
+      due_date,
+      officer_notes,
+      facility:facilities(id, name)
+    `)
+    .eq("assigned_to", workerId)
+    .in("status", ["pending", "assigned", "in_progress"])
+    .order("due_date", { ascending: true })
+    .limit(5)
+
+  if (error || !data) return []
+  return data as unknown as TaskLookup[]
+}
+
+async function createOfficerTaskAlert(params: {
+  task: TaskLookup
+  workerName: string
+  statusLabel: string
+  note: string
+  severity: "low" | "medium" | "high" | "critical"
+}) {
+  const { task, workerName, statusLabel, note, severity } = params
+  if (!task.facility?.id) return
+
+  const message =
+    `Worker update from ${workerName}: Task "${task.task_type}" at ${task.facility.name} marked "${statusLabel}".` +
+    (note ? ` Note: ${note}` : "")
+
+  await supabase.from("alerts").insert({
+    facility_id: task.facility.id,
+    alert_type: "worker_task_update",
+    severity,
+    message,
+    resolved: false,
+  })
 }
 
 async function findFacility(facilityId: string): Promise<FacilityLookup | null> {
@@ -152,44 +229,146 @@ serve(async (req) => {
     }
 
     if (mainChoice === "2") {
-      const { data: worker } = await supabase
-        .from("workers")
-        .select("id")
-        .in("phone", [...new Set([phone, phoneRaw.trim()])])
-        .eq("active", true)
-        .maybeSingle()
-
+      const worker = await getWorkerByPhone(phone, phoneRaw)
       if (!worker?.id) {
         return END(
           "No worker profile for this number.\nAsk your district officer to add you.",
         )
       }
-
-      const { data: tasks } = await supabase
-        .from("maintenance_tasks")
-        .select("facilities(name), due_date, status, priority")
-        .eq("assigned_to", worker.id)
-        .in("status", ["pending", "assigned", "in_progress"])
-        .order("due_date", { ascending: true })
-        .limit(5)
-
-      if (!tasks?.length) {
-        return END("No open assignments.\nThank you.")
-      }
-
-      const list = tasks
-        .map(
-          (t: Record<string, unknown>, i: number) =>
-            `${i + 1}. ${(t.facilities as { name?: string })?.name ?? "Facility"} — ${String(t.status)} (due: ${String(t.due_date ?? "N/A")})`,
-        )
-        .join("\n")
-
-      return END(`Your open assignments:\n\n${list}\n\nCheck dashboard for details.`)
+      return CON(
+        "Assignments menu:\n\n" +
+          "1. View my assignments\n" +
+          "2. Report back task status\n\n" +
+          "Enter choice:",
+      )
     }
 
     return CON(
       "Invalid choice.\n\n1. Report facility\n2. My assignments\n\nSelect option:",
     )
+  }
+
+  if (mainChoice === "2") {
+    const worker = await getWorkerByPhone(phone, phoneRaw)
+    if (!worker?.id) {
+      return END("No worker profile found. Contact district officer.")
+    }
+
+    const assignmentsChoice = parts[1]
+    if (level === 2) {
+      if (assignmentsChoice === "1") {
+        const tasks = await getWorkerOpenTasks(worker.id)
+        if (!tasks.length) return END("No open assignments.\nThank you.")
+        const list = tasks
+          .map((t, i) => `${i + 1}. ${t.facility?.name ?? "Facility"} — ${t.status} (due: ${t.due_date || "N/A"})`)
+          .join("\n")
+        return END(`Your open assignments:\n\n${list}\n\nUse option 2 to report status.`)
+      }
+
+      if (assignmentsChoice === "2") {
+        const tasks = await getWorkerOpenTasks(worker.id)
+        if (!tasks.length) return END("No open assignments to report.\nThank you.")
+        const list = tasks
+          .map((t, i) => `${i + 1}. ${t.facility?.name ?? "Facility"} (${t.status})`)
+          .join("\n")
+        return CON(
+          "Select task number:\n\n" +
+            `${list}\n\n` +
+            "Task #:",
+        )
+      }
+
+      return CON(
+        "Invalid choice.\n\n1. View my assignments\n2. Report back task status\n\nEnter choice:",
+      )
+    }
+
+    if (assignmentsChoice !== "2") {
+      return END("Session ended. Dial *384*11082# to restart.")
+    }
+
+    if (level === 3) {
+      const tasks = await getWorkerOpenTasks(worker.id)
+      const taskIndex = Number(parts[2]) - 1
+      if (Number.isNaN(taskIndex) || taskIndex < 0 || taskIndex >= tasks.length) {
+        return CON("Invalid task number.\nEnter task # again:")
+      }
+
+      const task = tasks[taskIndex]
+      return CON(
+        `Task: ${task.facility?.name ?? "Facility"}\n\n` +
+          "Report status:\n" +
+          "1. Started\n" +
+          "2. Completed\n" +
+          "3. Blocked/Delayed\n\n" +
+          "Enter choice:",
+      )
+    }
+
+    if (level === 4) {
+      const statusChoice = parts[3]
+      const statusMeta = TASK_STATUS_OPTIONS[statusChoice]
+      if (!statusMeta) {
+        return CON(
+          "Invalid status.\n1.Started 2.Completed 3.Blocked/Delayed\n\nEnter choice:",
+        )
+      }
+
+      return CON(
+        `Status: ${statusMeta.label}\n\n` +
+          "Add short note (or 0 for none):\n\n" +
+          "Note:",
+      )
+    }
+
+    if (level === 5) {
+      const tasks = await getWorkerOpenTasks(worker.id)
+      const taskIndex = Number(parts[2]) - 1
+      const statusMeta = TASK_STATUS_OPTIONS[parts[3] ?? ""]
+      if (Number.isNaN(taskIndex) || taskIndex < 0 || taskIndex >= tasks.length || !statusMeta) {
+        return END("Invalid report flow. Dial again.")
+      }
+
+      const task = tasks[taskIndex]
+      const noteInput = (parts[4] ?? "").trim()
+      const note = noteInput === "0" ? "" : noteInput
+
+      const notePrefix = `[USSD Worker Update ${new Date().toISOString()}] ${statusMeta.label}`
+      const existingNotes = task.officer_notes || ""
+      const updatedNotes = note
+        ? `${existingNotes}${existingNotes ? "\n" : ""}${notePrefix} - ${note}`
+        : `${existingNotes}${existingNotes ? "\n" : ""}${notePrefix}`
+
+      const { error: updateError } = await supabase
+        .from("maintenance_tasks")
+        .update({
+          status: statusMeta.status,
+          officer_notes: updatedNotes,
+        })
+        .eq("id", task.id)
+        .eq("assigned_to", worker.id)
+
+      if (updateError) {
+        return END("Could not submit update now. Try again later.")
+      }
+
+      await createOfficerTaskAlert({
+        task,
+        workerName: worker.name || "Worker",
+        statusLabel: statusMeta.label,
+        note,
+        severity: statusMeta.severity,
+      })
+
+      return END(
+        "Update sent!\n\n" +
+          `Task: ${task.facility?.name ?? "Facility"}\n` +
+          `Status: ${statusMeta.label}\n\n` +
+          "District officer has been notified.",
+      )
+    }
+
+    return END("Session expired.\nDial *384*11082# to restart.")
   }
 
   if (mainChoice !== "1") {

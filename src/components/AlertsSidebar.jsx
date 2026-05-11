@@ -45,6 +45,13 @@ const ALERT_TYPES = {
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
     borderColor: 'border-purple-200'
+  },
+  worker_task_update: {
+    label: 'Worker Task Update',
+    icon: '🧰',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-100',
+    borderColor: 'border-indigo-200'
   }
 }
 

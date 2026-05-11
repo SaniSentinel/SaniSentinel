@@ -2,7 +2,7 @@
 
 When a maintenance task is moved to **In Progress** from the UI, SaniSentinel now sends:
 - SMS via Africa's Talking to the assigned worker phone
-- Email to the assigned worker email (if provided)
+- Email to the assigned worker email (if provided) using **Nodemailer SMTP**
 
 ## What changed
 
@@ -25,8 +25,12 @@ Set these in **Supabase Dashboard > Edge Functions > Secrets**:
 
 - `AFRICAS_TALKING_API_KEY` (required for SMS)
 - `AFRICAS_TALKING_USERNAME` (use `sandbox` for simulator)
-- `RESEND_API_KEY` (required for email delivery)
-- `TASK_NOTIFICATION_FROM_EMAIL` (optional; default `SaniSentinel <onboarding@resend.dev>`)
+- `SMTP_HOST` (required for email)
+- `SMTP_PORT` (required, e.g. `587` or `465`)
+- `SMTP_SECURE` (`true` for 465 SSL, `false` for 587 STARTTLS)
+- `SMTP_USER` (required)
+- `SMTP_PASS` (required)
+- `TASK_NOTIFICATION_FROM_EMAIL` (optional; default `SaniSentinel <no-reply@sanisentinel.local>`)
 
 Also already required:
 - `SUPABASE_URL`
@@ -48,6 +52,7 @@ npm run deploy:telecom
 
 - If worker has no email, SMS is still sent and email is skipped.
 - If SMS fails, the failure is logged in `sms_gateway_logs`.
+- If SMTP credentials are missing/wrong, you'll see `Nodemailer SMTP error` in the Start action error.
 - If notification fails after status update, UI shows:
   - `Task started, but notification failed: ...`
   - task remains in `in_progress` so work state is not lost.

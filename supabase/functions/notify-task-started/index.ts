@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,9 +11,13 @@ const AT_API_KEY = Deno.env.get('AFRICAS_TALKING_API_KEY')
 const AT_USERNAME = Deno.env.get('AFRICAS_TALKING_USERNAME') || 'sandbox'
 const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const TASK_NOTIFICATION_FROM_EMAIL =
-  Deno.env.get('TASK_NOTIFICATION_FROM_EMAIL') || 'SaniSentinel <onboarding@resend.dev>'
+  Deno.env.get('TASK_NOTIFICATION_FROM_EMAIL') || 'SaniSentinel <no-reply@sanisentinel.local>'
+const SMTP_HOST = Deno.env.get('SMTP_HOST')
+const SMTP_PORT = Number(Deno.env.get('SMTP_PORT') || '587')
+const SMTP_SECURE = Deno.env.get('SMTP_SECURE') === 'true'
+const SMTP_USER = Deno.env.get('SMTP_USER')
+const SMTP_PASS = Deno.env.get('SMTP_PASS')
 
 type TaskRow = {
   id: string
@@ -68,29 +73,32 @@ async function sendSMS(to: string, message: string) {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    return { ok: false, error: 'RESEND_API_KEY not configured' }
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    return { ok: false, error: 'SMTP_HOST/SMTP_USER/SMTP_PASS not configured' }
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  try {
+    const transport = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    })
+
+    const info = await transport.sendMail({
       from: TASK_NOTIFICATION_FROM_EMAIL,
-      to: [to],
+      to,
       subject,
       html,
-    }),
-  })
+    })
 
-  const text = await res.text()
-  if (!res.ok) {
-    return { ok: false, error: `Resend ${res.status}: ${text}` }
+    return { ok: true, raw: JSON.stringify({ messageId: info.messageId }) }
+  } catch (error) {
+    return { ok: false, error: `Nodemailer SMTP error: ${error.message}` }
   }
-  return { ok: true, raw: text }
 }
 
 serve(async (req) => {
@@ -189,6 +197,8 @@ serve(async (req) => {
       emailResult = await sendEmail(task.worker.email, subject, html)
     }
 
+    const allNotificationsOk = smsResult.ok && emailResult.ok
+
     // Record SMS outcome for admin observability.
     await supabase.from('sms_gateway_logs').insert({
       direction: 'outbound',
@@ -202,6 +212,8 @@ serve(async (req) => {
         notification_type: 'task_started',
         task_id: task.id,
         worker_id: task.worker.id,
+        sms_sent: smsResult.ok,
+        sms_error: smsResult.ok ? null : smsResult.error || null,
         email_sent: emailResult.ok,
         email_error: emailResult.ok ? null : emailResult.error || null,
       },
@@ -209,7 +221,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: smsResult.ok || emailResult.ok,
+        success: allNotificationsOk,
         task_id: task.id,
         worker: { id: task.worker.id, name: workerName, phone: task.worker.phone, email: task.worker.email || null },
         sms: smsResult,

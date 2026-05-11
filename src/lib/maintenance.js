@@ -490,7 +490,7 @@ export const maintenance = {
         beforeTask.status !== 'in_progress' && !!beforeTask.assigned_to
 
       if (shouldNotify) {
-        const { error: notifyError } = await supabase.functions.invoke(
+        const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
           'notify-task-started',
           {
             body: { task_id: taskId },
@@ -501,6 +501,17 @@ export const maintenance = {
           return {
             data: updateResult.data,
             error: `Task started, but notification failed: ${notifyError.message}`,
+          }
+        }
+
+        if (!notifyData?.success) {
+          const emailErr = notifyData?.email?.error ? ` Email: ${notifyData.email.error}.` : ''
+          const smsErr = notifyData?.sms?.error ? ` SMS: ${notifyData.sms.error}.` : ''
+          return {
+            data: updateResult.data,
+            error:
+              `Task started, but notification failed.` +
+              `${emailErr}${smsErr}`.trim(),
           }
         }
       }
