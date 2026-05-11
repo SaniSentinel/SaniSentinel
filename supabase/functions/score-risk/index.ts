@@ -351,7 +351,8 @@ serve(async (req) => {
       const climateSnapshot = climateByDistrict.get(facility.district_id)
 
       // Calculate individual risk factors
-      const climateRisk = (climateSnapshot ? Math.min(climateSnapshot.flood_risk_score * 0.3, 30) : 15) * riskConfig.climate_weight
+      // Flood score is 0-100; config weight (default 0.3) maps it to max ~30 points.
+      const climateRisk = (climateSnapshot ? climateSnapshot.flood_risk_score : 50) * riskConfig.climate_weight
       const conditionRisk = calculateConditionRisk(facility.status) * riskConfig.condition_weight
       const maintenanceRisk = calculateMaintenanceRisk(facility.last_serviced, facility.type) * riskConfig.maintenance_weight
       const reportsRisk = calculateReportsRisk(facilityReports) * riskConfig.reports_weight
@@ -386,15 +387,15 @@ serve(async (req) => {
       riskAssessment.action_required = getActionRecommendations(riskAssessment)
       riskAssessments.push(riskAssessment)
 
-      // Prepare facility update if risk score changed significantly or status needs updating
+      // Keep facility status aligned with current computed risk band.
       const riskScoreChanged = Math.abs(totalRiskScore - facility.risk_score) >= 5
-      const statusNeedsUpdate = recommendedStatus !== facility.status && totalRiskScore >= 60
+      const statusNeedsUpdate = recommendedStatus !== facility.status
 
       if (riskScoreChanged || statusNeedsUpdate) {
         facilityUpdates.push({
           id: facility.id,
           risk_score: totalRiskScore,
-          status: statusNeedsUpdate ? recommendedStatus : facility.status
+          status: recommendedStatus
         })
       }
     }

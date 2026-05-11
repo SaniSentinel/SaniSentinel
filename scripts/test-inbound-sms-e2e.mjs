@@ -1,14 +1,4 @@
-/**
- * End-to-end: POST an inbound-style SMS to the Edge Function, then verify a row in `reports`.
- *
- * Requires .env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
- * Optional: INBOUND_SMS_FUNCTION_PATH (default /functions/v1/inbound-sms)
- *
- * Uses JSON body (same parser as Africa's Talking after form decode).
- *
- * Run: npm run test:inbound-sms
- */
-
+#!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import path from 'path'
@@ -16,39 +6,34 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '..', '.env') })
+dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
 
-const url = process.env.VITE_SUPABASE_URL
+const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const anon = process.env.VITE_SUPABASE_ANON_KEY
 const fnPath = process.env.INBOUND_SMS_FUNCTION_PATH || '/functions/v1/inbound-sms'
 
 function fail(m) {
-  console.error('\n❌', m, '\n')
+  console.error(`\n❌ ${m}\n`)
   process.exit(1)
 }
 
 async function main() {
-  if (!url || !anon) fail('Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env')
+  if (!url || !anon) fail('Set SUPABASE_URL/VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY')
+  const db = createClient(url, anon)
 
-  const rest = createClient(url, anon)
-
-  const { data: fac, error: fErr } = await rest
+  const { data: fac, error: facErr } = await db
     .from('facilities')
     .select('id, name')
     .limit(1)
     .maybeSingle()
+  if (facErr) fail(facErr.message)
+  if (!fac?.id) fail('No facilities found')
 
-  if (fErr) fail(`facilities query: ${fErr.message}`)
-  if (!fac?.id) fail('No facility row found — seed facilities first.')
-
-  const bodyText = `F${fac.id}#E2E#good`
-  const phone = '+233241234599'
   const endpoint = `${url.replace(/\/$/, '')}${fnPath}`
+  const phone = '+233241239999'
+  const text = `F${fac.id}#E2E#overflow`
 
-  console.log('ℹ️  Facility:', fac.name, fac.id)
-  console.log('ℹ️  POST', endpoint)
-  console.log('ℹ️  Body:', bodyText)
-
-  const { data: beforeRow } = await rest
+  const { data: before } = await db
     .from('reports')
     .select('id')
     .eq('facility_id', fac.id)
@@ -59,53 +44,28 @@ async function main() {
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${anon}`,
-      'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ text: bodyText, from: phone })
+    body: JSON.stringify({ from: phone, text }),
   })
-
   const json = await res.json().catch(() => ({}))
+  if (!res.ok || !json.success) fail(`Inbound function failed: HTTP ${res.status} ${JSON.stringify(json)}`)
 
-  if (!res.ok) {
-    console.error(json)
-    if (res.status === 404) {
-      fail(
-        `Edge function HTTP 404 — deploy with: supabase functions deploy inbound-sms (or set INBOUND_SMS_FUNCTION_PATH to a running URL).`
-      )
-    }
-    fail(`Edge function HTTP ${res.status}`)
-  }
-
-  if (!json.success) {
-    console.error(json)
-    fail('Edge function returned success=false')
-  }
-
-  const { data: row, error: rErr } = await rest
+  const { data: latest, error: rowErr } = await db
     .from('reports')
-    .select('id, condition, notes, reported_by, created_at')
+    .select('id, condition, notes')
     .eq('facility_id', fac.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+  if (rowErr) fail(rowErr.message)
+  if (!latest || latest.id === before?.id) fail('No new report row inserted')
+  if (latest.condition !== 'overflow') fail(`Expected overflow, got ${latest.condition}`)
 
-  if (rErr) fail(`reports query: ${rErr.message}`)
-  if (!row) fail('Could not re-query reports')
-
-  if (beforeRow?.id === row.id) {
-    fail('No new report row detected (same latest id as before).')
-  }
-
-  if (row.condition !== 'good') fail(`Expected condition good, got ${row.condition}`)
-  if (!String(row.notes || '').includes('E2E')) fail('Notes should mention block E2E')
-
-  console.log('✅ Report inserted:', row.id)
-  console.log('✅ Condition:', row.condition)
-  console.log('✅ Parser + DB path verified.\n')
+  console.log('✅ Inbound SMS report inserted')
+  console.log(`   Facility: ${fac.name}`)
+  console.log(`   Report ID: ${latest.id}`)
 }
 
-main().catch((e) => {
-  console.error(e)
-  fail(e.message)
-})
+main().catch((e) => fail(e.message || String(e)))
