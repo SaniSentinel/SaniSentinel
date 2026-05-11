@@ -7,8 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const AT_API_KEY = Deno.env.get('AFRICAS_TALKING_API_KEY')
-const AT_USERNAME = Deno.env.get('AFRICAS_TALKING_USERNAME') || 'sandbox'
+function readEnv(...keys: string[]): string | null {
+  for (const key of keys) {
+    const v = Deno.env.get(key)
+    if (v && v.trim() !== '') return v.trim()
+  }
+  return null
+}
+
+const AT_API_KEY = readEnv('AFRICAS_TALKING_API_KEY', 'AFRICAS_TALKING_APIKEY', 'AT_API_KEY')
+const AT_USERNAME = readEnv('AFRICAS_TALKING_USERNAME', 'AT_USERNAME') || 'sandbox'
 const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
 const TASK_NOTIFICATION_FROM_EMAIL =
@@ -48,7 +56,7 @@ function labelTaskType(taskType: string): string {
 
 async function sendSMS(to: string, message: string) {
   if (!AT_API_KEY) {
-    return { ok: false, error: 'AFRICAS_TALKING_API_KEY not configured' }
+    return { ok: false, error: 'AFRICAS_TALKING_API_KEY not configured (or empty)' }
   }
 
   const formData = new FormData()
@@ -67,7 +75,12 @@ async function sendSMS(to: string, message: string) {
 
   const text = await res.text()
   if (!res.ok) {
-    return { ok: false, error: `AT API ${res.status}: ${text}` }
+    return {
+      ok: false,
+      error:
+        `AT API ${res.status}: ${text}` +
+        ` (username="${AT_USERNAME}", key_present=${AT_API_KEY.length > 8})`,
+    }
   }
   return { ok: true, raw: text }
 }

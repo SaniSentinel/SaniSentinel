@@ -53,9 +53,17 @@ interface SMSResponse {
   error?: string
 }
 
+function readEnv(...keys: string[]): string | null {
+  for (const key of keys) {
+    const v = Deno.env.get(key)
+    if (v && v.trim() !== '') return v.trim()
+  }
+  return null
+}
+
 // Africa's Talking SMS API configuration
-const AT_API_KEY = Deno.env.get('AFRICAS_TALKING_API_KEY')
-const AT_USERNAME = Deno.env.get('AFRICAS_TALKING_USERNAME') || 'sandbox'
+const AT_API_KEY = readEnv('AFRICAS_TALKING_API_KEY', 'AFRICAS_TALKING_APIKEY', 'AT_API_KEY')
+const AT_USERNAME = readEnv('AFRICAS_TALKING_USERNAME', 'AT_USERNAME') || 'sandbox'
 const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
 // SMS message templates
@@ -173,7 +181,7 @@ async function sendSMS(to: string[], message: string, testMode = false): Promise
   if (!AT_API_KEY) {
     return {
       success: false,
-      error: 'Africa\'s Talking API key not configured'
+      error: 'Africa\'s Talking API key not configured (or empty)'
     }
   }
   
@@ -207,7 +215,9 @@ async function sendSMS(to: string[], message: string, testMode = false): Promise
       console.error('Africa\'s Talking API error:', response.status, errorText)
       return {
         success: false,
-        error: `API error: ${response.status} ${response.statusText}`
+        error:
+          `AT API ${response.status}: ${errorText}` +
+          ` (username="${AT_USERNAME}", key_present=${AT_API_KEY.length > 8})`
       }
     }
     
