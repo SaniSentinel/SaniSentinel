@@ -34,7 +34,9 @@ import LoginTest from './pages/LoginTest'
 import LoginSimple from './pages/LoginSimple'
 import RouteTestPage from './pages/RouteTestPage'
 import UserManagement from './pages/UserManagement'
-import AdminDashboard from './pages/AdminDashboard'
+import SystemAdminDashboard from './pages/SystemAdminDashboard'
+import SimpleSystemAdminDashboard from './pages/SimpleSystemAdminDashboard'
+import ComprehensiveAdminDashboard from './pages/ComprehensiveAdminDashboard'
 import AdminSystemConfig from './pages/AdminSystemConfig'
 import AdminGISMap from './pages/AdminGISMap'
 import AdminSmsGatewayLog from './pages/AdminSmsGatewayLog'
@@ -150,7 +152,25 @@ function App() {
         {/* Admin Management Routes */}
         <Route path="/admin-dashboard" element={
           <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
-            <AdminDashboard />
+            <Navigate to="/system-admin-dashboard" replace />
+          </AuthGuard>
+        } />
+
+        <Route path="/system-admin-dashboard" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
+            <ComprehensiveAdminDashboard />
+          </AuthGuard>
+        } />
+
+        <Route path="/simple-admin-dashboard" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
+            <SimpleSystemAdminDashboard />
+          </AuthGuard>
+        } />
+
+        <Route path="/advanced-admin-dashboard" element={
+          <AuthGuard redirectTo="/login" allowedRoles={['admin', 'system_admin']}>
+            <SystemAdminDashboard />
           </AuthGuard>
         } />
 

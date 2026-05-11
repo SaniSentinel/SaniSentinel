@@ -32,7 +32,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
   const useSidebarLayout = isAdminUser || isOfficer
 
   const navigation = [
-    { name: 'Overview', href: isAdminUser ? '/admin-dashboard' : '/dashboard', icon: '📊', current: path === '/dashboard' || path === '/admin-dashboard' },
+    { name: 'Overview', href: isAdminUser ? '/system-admin-dashboard' : '/dashboard', icon: '📊', current: path === '/dashboard' || path === '/admin-dashboard' || path === '/system-admin-dashboard' },
     { name: 'Facility Map', href: '/facility-map', icon: '🗺️', current: path === '/facility-map' || path === '/professional-facility-map' },
     { name: 'Reports', href: '/reports', icon: '📝', current: path === '/reports' || path === '/professional-reports' },
     { name: 'Maintenance', href: '/maintenance', icon: '🔧', current: path === '/maintenance' || path === '/professional-maintenance' },
@@ -58,9 +58,9 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
 
   const adminSidebarSections = [
     {
-      title: 'System Config',
+      title: 'System Administration',
       items: [
-        { name: 'Admin Dashboard', href: '/admin-dashboard', icon: '⚙️' },
+        { name: 'System Dashboard', href: '/system-admin-dashboard', icon: '📊' },
         { name: 'Risk Config', href: '/admin/system-config', icon: '🎛️' },
         { name: 'GIS Map', href: '/admin/gis-map', icon: '🗺️' },
         { name: 'SMS Gateway Logs', href: '/admin/sms-logs', icon: '📱' }

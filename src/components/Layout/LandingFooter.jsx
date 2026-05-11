@@ -159,7 +159,7 @@ const LandingFooter = () => {
                       {link.href.startsWith('#') ? (
                         <button
                           onClick={() => scrollToSection(link.href)}
-                          className="text-blue-200 hover:text-white transition-all duration-300 text-sm hover:translate-x-1 transform inline-block w-full text-left"
+                          className="text-left text-sm text-white hover:text-emerald-200 transition-all duration-300 hover:translate-x-1 transform inline-block w-full"
                         >
                           <span className="flex items-center">
                             <svg className="w-3 h-3 mr-2 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@ const LandingFooter = () => {
                       ) : (
                         <Link
                           to={link.href}
-                          className="text-blue-200 hover:text-white transition-all duration-300 text-sm hover:translate-x-1 transform inline-block w-full text-left"
+                          className="text-left text-sm text-white hover:text-emerald-200 transition-all duration-300 hover:translate-x-1 transform inline-block w-full"
                         >
                           <span className="flex items-center">
                             <svg className="w-3 h-3 mr-2 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
