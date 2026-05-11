@@ -20,9 +20,10 @@
     "test:realtime-alerts": "node scripts/test-realtime-alerts-e2e.mjs",
     "test:outbound-sms": "node scripts/test-outbound-sms-flow.mjs",
     "deploy:inbound-sms": "npx --yes supabase@latest functions deploy inbound-sms",
+    "deploy:notify-task-started": "npx --yes supabase@latest functions deploy notify-task-started",
     "deploy:send-sms-alert": "npx --yes supabase@latest functions deploy send-sms-alert",
     "deploy:ussd-wash": "npx --yes supabase@latest functions deploy ussd-wash",
-    "deploy:telecom": "npm run deploy:inbound-sms && npm run deploy:send-sms-alert && npm run deploy:ussd-wash"
+    "deploy:telecom": "npm run deploy:inbound-sms && npm run deploy:send-sms-alert && npm run deploy:ussd-wash && npm run deploy:notify-task-started"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",

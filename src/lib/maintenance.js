@@ -472,7 +472,43 @@ export const maintenance = {
 
   // Start task (mark as in progress)
   start: async (taskId) => {
-    return await maintenance.update(taskId, { status: 'in_progress' })
+    try {
+      // Read current state first so we only notify on an actual transition.
+      const { data: beforeTask, error: beforeError } = await supabase
+        .from('maintenance_tasks')
+        .select('id, status, assigned_to')
+        .eq('id', taskId)
+        .single()
+
+      if (beforeError) throw beforeError
+      if (!beforeTask) return { data: null, error: 'Task not found' }
+
+      const updateResult = await maintenance.update(taskId, { status: 'in_progress' })
+      if (updateResult.error) return updateResult
+
+      const shouldNotify =
+        beforeTask.status !== 'in_progress' && !!beforeTask.assigned_to
+
+      if (shouldNotify) {
+        const { error: notifyError } = await supabase.functions.invoke(
+          'notify-task-started',
+          {
+            body: { task_id: taskId },
+          },
+        )
+
+        if (notifyError) {
+          return {
+            data: updateResult.data,
+            error: `Task started, but notification failed: ${notifyError.message}`,
+          }
+        }
+      }
+
+      return updateResult
+    } catch (error) {
+      return { data: null, error: error.message }
+    }
   },
 
   // Complete task

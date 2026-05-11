@@ -284,7 +284,10 @@ const ProfessionalMaintenance = () => {
     try {
       setActionLoading(prev => ({ ...prev, [taskId]: true }))
       
-      const result = await maintenance.update(taskId, { status: newStatus })
+      const result =
+        newStatus === 'in_progress'
+          ? await maintenance.start(taskId)
+          : await maintenance.update(taskId, { status: newStatus })
       
       if (result.error) {
         throw new Error(result.error)
