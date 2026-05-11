@@ -212,16 +212,18 @@ export const workers = {
     }
 
     try {
+      const row = {
+        name: name.trim(),
+        phone: phone.trim(),
+        district_id,
+        role,
+        active: true
+      }
+      if (emailTrimmed) row.email = emailTrimmed
+
       const { data, error } = await supabase
         .from('workers')
-        .insert([{
-          name: name.trim(),
-          phone: phone.trim(),
-          district_id,
-          role,
-          active: true,
-          email: emailTrimmed
-        }])
+        .insert([row])
         .select(`
           *,
           district:districts(id, name, region)

@@ -81,6 +81,32 @@ const SMS_TEMPLATES = {
   custom: (message: string) => message
 }
 
+/** Prefer worker assigned to an open maintenance task for this facility (then role-based list). */
+async function getAssignedWorkerPhoneForFacility(
+  supabase: any,
+  facilityId: string
+): Promise<string | null> {
+  const { data: task, error } = await supabase
+    .from('maintenance_tasks')
+    .select('assigned_to')
+    .eq('facility_id', facilityId)
+    .in('status', ['pending', 'assigned', 'in_progress'])
+    .not('assigned_to', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !task?.assigned_to) return null
+
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('phone')
+    .eq('id', task.assigned_to)
+    .maybeSingle()
+
+  return worker?.phone ?? null
+}
+
 // Get appropriate workers for alert notification
 async function getWorkersForAlert(supabase: any, alert: Alert): Promise<Worker[]> {
   const { severity, alert_type } = alert
@@ -449,9 +475,10 @@ serve(async (req) => {
         // Use specified phone numbers
         recipients = worker_phones
       } else {
-        // Get appropriate workers for this alert
+        const assignedPhone = await getAssignedWorkerPhoneForFacility(supabase, alert.facility_id)
         const workers = await getWorkersForAlert(supabase, alert)
-        recipients = workers.map(w => w.phone)
+        const rolePhones = workers.map((w) => w.phone)
+        recipients = [...new Set([...(assignedPhone ? [assignedPhone] : []), ...rolePhones])]
       }
       
       if (recipients.length === 0) {

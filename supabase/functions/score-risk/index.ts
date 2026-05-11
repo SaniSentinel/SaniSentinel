@@ -221,11 +221,15 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Parse request body for optional facility filtering
+    // Parse request body for optional facility filtering + optional SMS follow-up
     let facilityIds: string[] = []
+    let sendSmsAlerts = false
+    let smsTestMode = false
     try {
       const body = await req.json()
       facilityIds = body.facility_ids || []
+      sendSmsAlerts = body.send_sms_alerts === true
+      smsTestMode = body.sms_test_mode === true
     } catch {
       // No body or invalid JSON, process all facilities
     }
@@ -446,6 +450,48 @@ serve(async (req) => {
 
     console.log(`✅ Risk assessment completed for ${facilities.length} facilities`)
 
+    let smsFollowup: Record<string, unknown> | null = null
+    if (sendSmsAlerts) {
+      const criticalIds = [
+        ...new Set(
+          riskAssessments
+            .filter((r) => r.priority_level === 'critical')
+            .map((r) => r.facility_id),
+        ),
+      ]
+      if (criticalIds.length > 0) {
+        try {
+          const smsRes = await fetch(`${supabaseUrl}/functions/v1/send-sms-alert`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              facility_ids: criticalIds,
+              severity_filter: ['critical'],
+              test_mode: smsTestMode,
+            }),
+          })
+          const smsText = await smsRes.text()
+          let smsBody: Record<string, unknown>
+          try {
+            smsBody = JSON.parse(smsText) as Record<string, unknown>
+          } catch {
+            smsBody = { raw: smsText }
+          }
+          smsFollowup = { http_status: smsRes.status, ...smsBody }
+        } catch (e) {
+          smsFollowup = { error: (e as Error).message }
+        }
+      } else {
+        smsFollowup = {
+          skipped: true,
+          reason: 'No facilities assessed as critical in this run',
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -453,6 +499,7 @@ serve(async (req) => {
         summary,
         assessments: riskAssessments,
         updates: updateResults,
+        sms_followup: smsFollowup,
         timestamp: new Date().toISOString()
       }),
       { 
