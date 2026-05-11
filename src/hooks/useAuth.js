@@ -1,24 +1,102 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { resolveDistrictUuidFromMetadata, isDistrictUuid } from '../lib/districtId'
 
 export const useAuth = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  /** Resolved UUID when JWT stores a district name in district_id (legacy / fallback form). */
+  const [officerDistrictUuid, setOfficerDistrictUuid] = useState(null)
+  const [officerDistrictResolved, setOfficerDistrictResolved] = useState(true)
 
-  // Derived user data from metadata
-  const userData = user ? {
-    id: user.id,
-    email: user.email,
-    role: user.user_metadata?.role || null,
-    name: user.user_metadata?.name || user.email,
-    district_id: user.user_metadata?.district_id || null,
-    department: user.user_metadata?.department || null,
-    permissions: user.user_metadata?.permissions || [],
-    title: user.user_metadata?.title || null,
-    created_at: user.created_at,
-    email_confirmed: user.email_confirmed_at !== null
-  } : null
+  useEffect(() => {
+    let cancelled = false
+    const meta = user?.user_metadata
+
+    if (!user || !meta) {
+      setOfficerDistrictUuid(null)
+      setOfficerDistrictResolved(true)
+      return
+    }
+
+    if (meta.role !== 'district_officer') {
+      setOfficerDistrictUuid(null)
+      setOfficerDistrictResolved(true)
+      return
+    }
+
+    const raw = meta.district_id
+
+    if (isDistrictUuid(raw)) {
+      setOfficerDistrictUuid(null)
+      setOfficerDistrictResolved(true)
+      return
+    }
+
+    if (!raw && !meta.district_name) {
+      setOfficerDistrictUuid(null)
+      setOfficerDistrictResolved(true)
+      return
+    }
+
+    setOfficerDistrictResolved(false)
+    setOfficerDistrictUuid(null)
+
+    resolveDistrictUuidFromMetadata({
+      district_id: raw,
+      district_name: meta.district_name
+    }).then((id) => {
+      if (!cancelled) {
+        setOfficerDistrictUuid(id)
+        setOfficerDistrictResolved(true)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    user?.id,
+    user?.user_metadata?.role,
+    user?.user_metadata?.district_id,
+    user?.user_metadata?.district_name
+  ])
+
+  const officerDistrictScopeLoading = useMemo(() => {
+    const meta = user?.user_metadata
+    if (!meta || meta.role !== 'district_officer') return false
+    const raw = meta.district_id
+    if (isDistrictUuid(raw)) return false
+    if (!raw && !meta.district_name) return false
+    return !officerDistrictResolved
+  }, [user, officerDistrictResolved])
+
+  // Derived user data from metadata (district officers get UUID from DB when metadata had a name/slug)
+  const userData = user
+    ? (() => {
+        const meta = user.user_metadata || {}
+        let district_id = meta.district_id ?? null
+        if (meta.role === 'district_officer') {
+          district_id = isDistrictUuid(meta.district_id)
+            ? meta.district_id.trim()
+            : officerDistrictUuid
+        }
+        return {
+          id: user.id,
+          email: user.email,
+          role: meta.role || null,
+          name: meta.name || user.email,
+          district_id,
+          district_name: meta.district_name ?? null,
+          department: meta.department || null,
+          permissions: meta.permissions || [],
+          title: meta.title || null,
+          created_at: user.created_at,
+          email_confirmed: user.email_confirmed_at !== null
+        }
+      })()
+    : null
 
   // Check if user has a specific permission
   const hasPermission = (permission) => {
@@ -47,7 +125,7 @@ export const useAuth = () => {
     // System admin can access all districts
     if (userData.role === 'system_admin' || userData.role === 'admin') return true
     
-    // Check if user's district matches
+    // Check if user's district matches (districtId should be UUID from DB)
     return userData.district_id === districtId
   }
 
@@ -185,6 +263,8 @@ export const useAuth = () => {
     isAuthenticated: !!user,
     isAdmin: userData?.role === 'system_admin' || userData?.role === 'admin',
     isDistrictOfficer: userData?.role === 'district_officer',
+    /** True while resolving a non-UUID district_id / district_name from JWT into districts.id */
+    officerDistrictScopeLoading,
     
     // Permission helpers
     hasPermission,

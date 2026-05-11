@@ -73,6 +73,15 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
       ]
     },
     {
+      title: 'National data',
+      items: [
+        { name: 'All reports', href: '/reports', icon: '📝', alsoMatch: ['/professional-reports'] },
+        { name: 'Facility map', href: '/facility-map', icon: '🗺️', alsoMatch: ['/professional-facility-map'] },
+        { name: 'Maintenance', href: '/maintenance', icon: '🔧', alsoMatch: ['/professional-maintenance'] },
+        { name: 'All workers', href: '/workers', icon: '👷', alsoMatch: ['/professional-workers'] },
+      ]
+    },
+    {
       title: 'National Reports',
       items: [
         { name: 'Reports & Exports', href: '/admin/reports-exports', icon: '📊' }
@@ -216,7 +225,9 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
                     </h3>
                     <div className="space-y-1">
                       {section.items.map((item) => {
-                        const active = location.pathname === item.href
+                        const active =
+                          location.pathname === item.href ||
+                          (item.alsoMatch && item.alsoMatch.includes(location.pathname))
                         return (
                           <Link
                             key={item.name}

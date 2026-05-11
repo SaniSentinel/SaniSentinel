@@ -96,6 +96,37 @@ const AdminDashboard = () => {
         ))}
       </div>
 
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Link
+          to="/reports"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-green-300 hover:shadow transition-all"
+        >
+          <p className="text-sm font-semibold text-gray-900">All district reports</p>
+          <p className="text-xs text-gray-500 mt-1">Live sanitation reports across every district.</p>
+        </Link>
+        <Link
+          to="/facility-map"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-green-300 hover:shadow transition-all"
+        >
+          <p className="text-sm font-semibold text-gray-900">National facility map</p>
+          <p className="text-xs text-gray-500 mt-1">GIS view of all facilities (same data officers see for their district).</p>
+        </Link>
+        <Link
+          to="/maintenance"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-green-300 hover:shadow transition-all"
+        >
+          <p className="text-sm font-semibold text-gray-900">Maintenance (all districts)</p>
+          <p className="text-xs text-gray-500 mt-1">Tasks and workload nationwide.</p>
+        </Link>
+        <Link
+          to="/admin/users"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-green-300 hover:shadow transition-all"
+        >
+          <p className="text-sm font-semibold text-gray-900">District officer accounts</p>
+          <p className="text-xs text-gray-500 mt-1">Create credentials and manage officer access.</p>
+        </Link>
+      </div>
+
       <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>

@@ -3,9 +3,11 @@ import AppLayout from '../components/Layout/AppLayout'
 import StatusBadge from '../components/UI/StatusBadge'
 import MetricCard from '../components/UI/MetricCard'
 import { reports } from '../lib/reports'
-import { districts } from '../lib/districts'
+import { useAuth } from '../hooks/useAuth'
 
 const ProfessionalReports = () => {
+  const { user } = useAuth()
+  const isNationalAdmin = user?.role === 'system_admin' || user?.role === 'admin'
   const [reportsData, setReportsData] = useState([])
   const [filteredReports, setFilteredReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -289,10 +291,14 @@ const ProfessionalReports = () => {
     )
   }
 
+  const reportsSubtitle = isNationalAdmin
+    ? `${filteredReports.length} of ${stats.total} reports shown • National view (all districts)`
+    : `${filteredReports.length} of ${stats.total} reports shown`
+
   return (
     <AppLayout 
       title="Reports" 
-      subtitle={`${filteredReports.length} of ${stats.total} reports shown`}
+      subtitle={reportsSubtitle}
       actions={actions}
     >
       {/* Summary Cards */}

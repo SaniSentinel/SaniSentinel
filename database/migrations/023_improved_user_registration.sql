@@ -171,58 +171,44 @@ GRANT EXECUTE ON FUNCTION public.register_district_officer(TEXT, TEXT, UUID, TEX
 GRANT EXECUTE ON FUNCTION public.update_district_officer_metadata(UUID, JSON) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_officer_registration_template(UUID) TO authenticated;
 
--- Ensure the admin user (officer@tamale.gov) has proper metadata
+-- Demo auth user officer@tamale.gov should remain a district_officer for Tamale (see CHECK_AND_CREATE_USERS.sql).
+-- Do not promote this account to system_admin here — that hides it from list_district_officer_accounts().
+-- If this block already ran in your database, apply migration 025_restore_tamale_district_officer_demo_account.sql.
 DO $$
 DECLARE
     tamale_district_id UUID;
-    admin_user_exists BOOLEAN;
+    tamale_region TEXT;
+    officer_exists BOOLEAN;
 BEGIN
-    -- Get Tamale district ID
-    SELECT id INTO tamale_district_id 
-    FROM public.districts 
-    WHERE name = 'Tamale' AND region = 'Northern Region'
+    SELECT id, region INTO tamale_district_id, tamale_region
+    FROM public.districts
+    WHERE name = 'Tamale'
+    ORDER BY CASE WHEN region ILIKE 'Northern%' THEN 0 ELSE 1 END
     LIMIT 1;
-    
-    -- Check if admin user exists
-    SELECT EXISTS(SELECT 1 FROM auth.users WHERE email = 'officer@tamale.gov') INTO admin_user_exists;
-    
-    IF admin_user_exists AND tamale_district_id IS NOT NULL THEN
-        -- Update admin user metadata to ensure it's complete
-        UPDATE auth.users 
-        SET raw_user_meta_data = jsonb_set(
-            jsonb_set(
-                jsonb_set(
-                    jsonb_set(
-                        jsonb_set(
-                            jsonb_set(
-                                jsonb_set(
-                                    COALESCE(raw_user_meta_data, '{}'::jsonb),
-                                    '{role}',
-                                    '"system_admin"'::jsonb
-                                ),
-                                '{name}',
-                                '"Tamale District Administrator"'::jsonb
-                            ),
-                            '{district_id}',
-                            to_jsonb(tamale_district_id::text)
-                        ),
-                        '{district_name}',
-                        '"Tamale"'::jsonb
-                    ),
-                    '{district_region}',
-                    '"Northern Region"'::jsonb
-                ),
-                '{department}',
-                '"Administration"'::jsonb
+
+    SELECT EXISTS(SELECT 1 FROM auth.users WHERE LOWER(email::TEXT) = 'officer@tamale.gov') INTO officer_exists;
+
+    IF officer_exists AND tamale_district_id IS NOT NULL THEN
+        UPDATE auth.users
+        SET raw_user_meta_data =
+            COALESCE(raw_user_meta_data, '{}'::jsonb)
+            || jsonb_build_object(
+                'role', 'district_officer',
+                'name', 'Tamale District Officer',
+                'district_id', tamale_district_id::text,
+                'district_name', 'Tamale',
+                'district_region', tamale_region,
+                'department', 'Health Department',
+                'permissions', '["read", "write", "manage_facilities"]'::jsonb,
+                'title', 'District Health Officer',
+                'created_by_admin', TRUE
             ),
-            '{permissions}',
-            '["all"]'::jsonb
-        )
-        WHERE email = 'officer@tamale.gov';
-        
-        RAISE NOTICE 'Updated admin user officer@tamale.gov with complete metadata';
+            updated_at = NOW()
+        WHERE LOWER(email::TEXT) = 'officer@tamale.gov';
+
+        RAISE NOTICE 'Updated demo user officer@tamale.gov as Tamale district_officer';
     ELSE
-        RAISE NOTICE 'Admin user officer@tamale.gov not found or Tamale district missing';
+        RAISE NOTICE 'officer@tamale.gov not found or Tamale district missing — skip demo officer metadata';
     END IF;
 END;
 $$;
