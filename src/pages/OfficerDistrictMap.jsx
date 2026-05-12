@@ -51,7 +51,7 @@ const createRiskMarker = (riskScore, status) => {
 }
 
 const OfficerDistrictMap = () => {
-  const { user } = useAuth()
+  const { user, officerDistrictScopeLoading } = useAuth()
   const [facilities, setFacilities] = useState([])
   const [district, setDistrict] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -60,6 +60,12 @@ const OfficerDistrictMap = () => {
   const districtId = user?.district_id || null
 
   const fetchDistrictFacilities = async () => {
+    if (officerDistrictScopeLoading) {
+      setLoading(true)
+      setError(null)
+      return
+    }
+
     if (!districtId) {
       setError('No district assigned to this officer account.')
       setLoading(false)
@@ -96,13 +102,23 @@ const OfficerDistrictMap = () => {
 
   useEffect(() => {
     fetchDistrictFacilities()
-  }, [districtId])
+  }, [districtId, officerDistrictScopeLoading])
 
   if (user?.role !== 'district_officer') {
     return null
   }
 
   const mapCenter = district?.lat && district?.lng ? [district.lat, district.lng] : [9.4034, -0.8424]
+
+  if (officerDistrictScopeLoading) {
+    return (
+      <AppLayout title="District GIS Map" subtitle="Loading your district…">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">
+          Resolving district from your profile…
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout

@@ -3,3 +3,7 @@
 # Redeploy after changing: supabase functions deploy inbound-sms
 [functions.inbound-sms]
 verify_jwt = false
+
+# Africa's Talking USSD callback (no Supabase user JWT)
+[functions.ussd-wash]
+verify_jwt = false

@@ -7,7 +7,7 @@ import { workers } from '../lib/workers'
 import { useAuth } from '../hooks/useAuth'
 
 const ProfessionalMaintenance = () => {
-  const { user } = useAuth()
+  const { user, officerDistrictScopeLoading } = useAuth()
   const isOfficer = user?.role === 'district_officer'
 
   const [districtWorkers, setDistrictWorkers] = useState([])
@@ -175,14 +175,14 @@ const ProfessionalMaintenance = () => {
 
   useEffect(() => {
     const loadDistrictWorkers = async () => {
-      if (!isOfficer || !user?.district_id) return
+      if (!isOfficer || officerDistrictScopeLoading || !user?.district_id) return
       const res = await workers.getForNotification({ district_id: user.district_id })
       if (!res.error) {
         setDistrictWorkers(res.data || [])
       }
     }
     loadDistrictWorkers()
-  }, [isOfficer, user?.district_id])
+  }, [isOfficer, officerDistrictScopeLoading, user?.district_id])
 
   useEffect(() => {
     if (!isOfficer || !loadTasks) return
@@ -284,7 +284,10 @@ const ProfessionalMaintenance = () => {
     try {
       setActionLoading(prev => ({ ...prev, [taskId]: true }))
       
-      const result = await maintenance.update(taskId, { status: newStatus })
+      const result =
+        newStatus === 'in_progress'
+          ? await maintenance.start(taskId)
+          : await maintenance.update(taskId, { status: newStatus })
       
       if (result.error) {
         throw new Error(result.error)

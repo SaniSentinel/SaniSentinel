@@ -221,11 +221,15 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Parse request body for optional facility filtering
+    // Parse request body for optional facility filtering + optional SMS follow-up
     let facilityIds: string[] = []
+    let sendSmsAlerts = false
+    let smsTestMode = false
     try {
       const body = await req.json()
       facilityIds = body.facility_ids || []
+      sendSmsAlerts = body.send_sms_alerts === true
+      smsTestMode = body.sms_test_mode === true
     } catch {
       // No body or invalid JSON, process all facilities
     }
@@ -347,7 +351,8 @@ serve(async (req) => {
       const climateSnapshot = climateByDistrict.get(facility.district_id)
 
       // Calculate individual risk factors
-      const climateRisk = (climateSnapshot ? Math.min(climateSnapshot.flood_risk_score * 0.3, 30) : 15) * riskConfig.climate_weight
+      // Flood score is 0-100; config weight (default 0.3) maps it to max ~30 points.
+      const climateRisk = (climateSnapshot ? climateSnapshot.flood_risk_score : 50) * riskConfig.climate_weight
       const conditionRisk = calculateConditionRisk(facility.status) * riskConfig.condition_weight
       const maintenanceRisk = calculateMaintenanceRisk(facility.last_serviced, facility.type) * riskConfig.maintenance_weight
       const reportsRisk = calculateReportsRisk(facilityReports) * riskConfig.reports_weight
@@ -382,15 +387,15 @@ serve(async (req) => {
       riskAssessment.action_required = getActionRecommendations(riskAssessment)
       riskAssessments.push(riskAssessment)
 
-      // Prepare facility update if risk score changed significantly or status needs updating
+      // Keep facility status aligned with current computed risk band.
       const riskScoreChanged = Math.abs(totalRiskScore - facility.risk_score) >= 5
-      const statusNeedsUpdate = recommendedStatus !== facility.status && totalRiskScore >= 60
+      const statusNeedsUpdate = recommendedStatus !== facility.status
 
       if (riskScoreChanged || statusNeedsUpdate) {
         facilityUpdates.push({
           id: facility.id,
           risk_score: totalRiskScore,
-          status: statusNeedsUpdate ? recommendedStatus : facility.status
+          status: recommendedStatus
         })
       }
     }
@@ -446,6 +451,48 @@ serve(async (req) => {
 
     console.log(`✅ Risk assessment completed for ${facilities.length} facilities`)
 
+    let smsFollowup: Record<string, unknown> | null = null
+    if (sendSmsAlerts) {
+      const criticalIds = [
+        ...new Set(
+          riskAssessments
+            .filter((r) => r.priority_level === 'critical')
+            .map((r) => r.facility_id),
+        ),
+      ]
+      if (criticalIds.length > 0) {
+        try {
+          const smsRes = await fetch(`${supabaseUrl}/functions/v1/send-sms-alert`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              facility_ids: criticalIds,
+              severity_filter: ['critical'],
+              test_mode: smsTestMode,
+            }),
+          })
+          const smsText = await smsRes.text()
+          let smsBody: Record<string, unknown>
+          try {
+            smsBody = JSON.parse(smsText) as Record<string, unknown>
+          } catch {
+            smsBody = { raw: smsText }
+          }
+          smsFollowup = { http_status: smsRes.status, ...smsBody }
+        } catch (e) {
+          smsFollowup = { error: (e as Error).message }
+        }
+      } else {
+        smsFollowup = {
+          skipped: true,
+          reason: 'No facilities assessed as critical in this run',
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -453,6 +500,7 @@ serve(async (req) => {
         summary,
         assessments: riskAssessments,
         updates: updateResults,
+        sms_followup: smsFollowup,
         timestamp: new Date().toISOString()
       }),
       { 

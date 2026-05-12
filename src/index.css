@@ -37,12 +37,13 @@ body {
   min-height: 100vh;
 }
 
-a {
+/* Scoped so Tailwind utilities on <a> (e.g. footer, nav) are not overridden */
+a:not([class]) {
   font-weight: 500;
   color: #3b82f6;
   text-decoration: inherit;
 }
-a:hover {
+a:not([class]):hover {
   color: #1d4ed8;
 }
 
@@ -51,25 +52,22 @@ h1 {
   line-height: 1.1;
 }
 
+/* Neutral reset so Tailwind classes control look (avoids white/light fills hiding text) */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #f3f4f6;
-  color: #1f2937;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #3b82f6;
-  background-color: #e5e7eb;
-}
-button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 /* Leaflet map styles */

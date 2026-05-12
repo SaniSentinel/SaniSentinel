@@ -53,9 +53,17 @@ interface SMSResponse {
   error?: string
 }
 
+function readEnv(...keys: string[]): string | null {
+  for (const key of keys) {
+    const v = Deno.env.get(key)
+    if (v && v.trim() !== '') return v.trim()
+  }
+  return null
+}
+
 // Africa's Talking SMS API configuration
-const AT_API_KEY = Deno.env.get('AFRICAS_TALKING_API_KEY')
-const AT_USERNAME = Deno.env.get('AFRICAS_TALKING_USERNAME') || 'sandbox'
+const AT_API_KEY = readEnv('AFRICAS_TALKING_API_KEY', 'AFRICAS_TALKING_APIKEY', 'AT_API_KEY')
+const AT_USERNAME = readEnv('AFRICAS_TALKING_USERNAME', 'AT_USERNAME') || 'sandbox'
 const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
 // SMS message templates
@@ -79,6 +87,32 @@ const SMS_TEMPLATES = {
     `📅 MAINTENANCE DUE: ${facilityName} in ${districtName} requires scheduled maintenance. Please arrange service.`,
   
   custom: (message: string) => message
+}
+
+/** Prefer worker assigned to an open maintenance task for this facility (then role-based list). */
+async function getAssignedWorkerPhoneForFacility(
+  supabase: any,
+  facilityId: string
+): Promise<string | null> {
+  const { data: task, error } = await supabase
+    .from('maintenance_tasks')
+    .select('assigned_to')
+    .eq('facility_id', facilityId)
+    .in('status', ['pending', 'assigned', 'in_progress'])
+    .not('assigned_to', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !task?.assigned_to) return null
+
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('phone')
+    .eq('id', task.assigned_to)
+    .maybeSingle()
+
+  return worker?.phone ?? null
 }
 
 // Get appropriate workers for alert notification
@@ -147,7 +181,7 @@ async function sendSMS(to: string[], message: string, testMode = false): Promise
   if (!AT_API_KEY) {
     return {
       success: false,
-      error: 'Africa\'s Talking API key not configured'
+      error: 'Africa\'s Talking API key not configured (or empty)'
     }
   }
   
@@ -181,7 +215,9 @@ async function sendSMS(to: string[], message: string, testMode = false): Promise
       console.error('Africa\'s Talking API error:', response.status, errorText)
       return {
         success: false,
-        error: `API error: ${response.status} ${response.statusText}`
+        error:
+          `AT API ${response.status}: ${errorText}` +
+          ` (username="${AT_USERNAME}", key_present=${AT_API_KEY.length > 8})`
       }
     }
     
@@ -449,9 +485,10 @@ serve(async (req) => {
         // Use specified phone numbers
         recipients = worker_phones
       } else {
-        // Get appropriate workers for this alert
+        const assignedPhone = await getAssignedWorkerPhoneForFacility(supabase, alert.facility_id)
         const workers = await getWorkersForAlert(supabase, alert)
-        recipients = workers.map(w => w.phone)
+        const rolePhones = workers.map((w) => w.phone)
+        recipients = [...new Set([...(assignedPhone ? [assignedPhone] : []), ...rolePhones])]
       }
       
       if (recipients.length === 0) {

@@ -39,20 +39,29 @@ export const workers = {
     }
   },
 
-  // Get workers by district
-  getByDistrict: async (districtId) => {
+  // Get workers by district ({ activeOnly: false } includes inactive rows)
+  getByDistrict: async (districtId, options = {}) => {
+    const { activeOnly = true } = options
     try {
-      const { data, error } = await supabase
+      if (!districtId) {
+        return { data: [], error: null }
+      }
+      let query = supabase
         .from('workers')
         .select(`
           *,
           district:districts(id, name, region)
         `)
         .eq('district_id', districtId)
-        .eq('active', true)
+
+      if (activeOnly) {
+        query = query.eq('active', true)
+      }
+
+      const { data, error } = await query
         .order('role', { ascending: true })
         .order('name', { ascending: true })
-      
+
       if (error) throw error
       return { data, error: null }
     } catch (error) {
@@ -164,45 +173,57 @@ export const workers = {
     }
   },
 
-  // Create new worker
+  // Create new worker (optional email — must be unique when set)
   create: async (workerData) => {
-    const { name, phone, district_id, role } = workerData
-    
+    const { name, phone, district_id, role, email } = workerData
+
     // Validate required fields
     if (!name || !phone || !district_id || !role) {
-      return { 
-        data: null, 
-        error: 'Missing required fields: name, phone, district_id, role' 
+      return {
+        data: null,
+        error: 'Missing required fields: name, phone, district_id, role'
       }
     }
 
     // Validate phone number format (basic validation)
     if (!phone.match(/^\+233\d{9}$/)) {
-      return { 
-        data: null, 
-        error: 'Invalid phone number format. Must be +233XXXXXXXXX' 
+      return {
+        data: null,
+        error: 'Invalid phone number format. Must be +233XXXXXXXXX'
       }
+    }
+
+    const emailTrimmed =
+      email !== undefined && email !== null && String(email).trim() !== ''
+        ? String(email).trim()
+        : null
+
+    if (emailTrimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      return { data: null, error: 'Invalid email address' }
     }
 
     // Validate role
     const validRoles = ['field_worker', 'supervisor', 'maintenance_tech', 'health_officer', 'district_coordinator']
     if (!validRoles.includes(role)) {
-      return { 
-        data: null, 
-        error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+      return {
+        data: null,
+        error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
       }
     }
 
     try {
+      const row = {
+        name: name.trim(),
+        phone: phone.trim(),
+        district_id,
+        role,
+        active: true
+      }
+      if (emailTrimmed) row.email = emailTrimmed
+
       const { data, error } = await supabase
         .from('workers')
-        .insert([{
-          name: name.trim(),
-          phone: phone.trim(),
-          district_id,
-          role,
-          active: true
-        }])
+        .insert([row])
         .select(`
           *,
           district:districts(id, name, region)
@@ -212,9 +233,10 @@ export const workers = {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      // Handle unique constraint violation for phone number
-      if (error.code === '23505' && error.message.includes('phone')) {
-        return { data: null, error: 'Phone number already exists' }
+      if (error.code === '23505') {
+        const msg = error.message || ''
+        if (msg.includes('phone')) return { data: null, error: 'Phone number already exists' }
+        if (msg.includes('email')) return { data: null, error: 'Email already in use' }
       }
       return { data: null, error: error.message }
     }
@@ -245,6 +267,17 @@ export const workers = {
       // Clean up string fields
       if (updates.name) updates.name = updates.name.trim()
       if (updates.phone) updates.phone = updates.phone.trim()
+      if (updates.email !== undefined) {
+        const e = updates.email
+        updates.email =
+          e === null || String(e).trim() === '' ? null : String(e).trim()
+        if (
+          updates.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)
+        ) {
+          return { data: null, error: 'Invalid email address' }
+        }
+      }
 
       const { data, error } = await supabase
         .from('workers')
@@ -259,9 +292,10 @@ export const workers = {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      // Handle unique constraint violation for phone number
-      if (error.code === '23505' && error.message.includes('phone')) {
-        return { data: null, error: 'Phone number already exists' }
+      if (error.code === '23505') {
+        const msg = error.message || ''
+        if (msg.includes('phone')) return { data: null, error: 'Phone number already exists' }
+        if (msg.includes('email')) return { data: null, error: 'Email already in use' }
       }
       return { data: null, error: error.message }
     }

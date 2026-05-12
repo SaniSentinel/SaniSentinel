@@ -31,7 +31,7 @@ const CONDITIONS = [
 ]
 
 const OfficerDashboard = () => {
-  const { user } = useAuth()
+  const { user, officerDistrictScopeLoading } = useAuth()
   const districtId = user?.district_id || null
 
   const [loading, setLoading] = useState(true)
@@ -61,6 +61,12 @@ const OfficerDashboard = () => {
   })
 
   const loadDistrictSummary = useCallback(async () => {
+    if (officerDistrictScopeLoading) {
+      setLoading(true)
+      setError(null)
+      return
+    }
+
     if (!districtId) {
       setLoading(false)
       setError('No district assigned to this officer account.')
@@ -108,10 +114,10 @@ const OfficerDashboard = () => {
     } finally {
       setLoading(false)
     }
-  }, [districtId])
+  }, [districtId, officerDistrictScopeLoading])
 
   const loadMonthlyMetrics = useCallback(async () => {
-    if (!districtId || !reportMonth) return
+    if (officerDistrictScopeLoading || !districtId || !reportMonth) return
 
     const range = monthUtcRange(reportMonth)
     if (!range) return
@@ -175,15 +181,16 @@ const OfficerDashboard = () => {
     } finally {
       setMonthlyLoading(false)
     }
-  }, [districtId, reportMonth])
+  }, [districtId, reportMonth, officerDistrictScopeLoading])
 
   useEffect(() => {
     loadDistrictSummary()
   }, [loadDistrictSummary])
 
   useEffect(() => {
+    if (officerDistrictScopeLoading) return
     loadMonthlyMetrics()
-  }, [loadMonthlyMetrics])
+  }, [officerDistrictScopeLoading, loadMonthlyMetrics])
 
   const handleManualSubmit = async (e) => {
     e.preventDefault()
@@ -234,6 +241,16 @@ const OfficerDashboard = () => {
 
   if (user?.role !== 'district_officer') {
     return null
+  }
+
+  if (officerDistrictScopeLoading) {
+    return (
+      <AppLayout title="Officer Dashboard" subtitle="Loading your district assignment…">
+        <div className="flex items-center justify-center py-16 text-gray-600 text-sm">
+          Resolving district from your profile…
+        </div>
+      </AppLayout>
+    )
   }
 
   return (

@@ -266,7 +266,7 @@ export const alerts = {
     }
 
     // Validate alert type
-    const validTypes = ['maintenance_due', 'high_risk', 'critical_status', 'overflow_detected', 'system_failure', 'climate_warning']
+    const validTypes = ['maintenance_due', 'high_risk', 'critical_status', 'overflow_detected', 'system_failure', 'climate_warning', 'worker_task_update']
     if (!validTypes.includes(alert_type)) {
       return { 
         data: null, 

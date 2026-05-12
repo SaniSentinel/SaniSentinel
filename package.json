@@ -13,7 +13,17 @@
     "create-test-users": "node scripts/create-test-users.js",
     "update-user-metadata": "node scripts/update-user-metadata.js",
     "test:rls-officer-facilities": "node scripts/test-rls-facilities-officer.mjs",
-    "test:inbound-sms": "node scripts/test-inbound-sms-e2e.mjs"
+    "test:role-separation": "node scripts/test-role-separation-e2e.mjs",
+    "test:inbound-sms": "node scripts/test-inbound-sms-e2e.mjs",
+    "test:sms-roundtrip": "node scripts/test-sms-roundtrip-e2e.mjs",
+    "test:flood-event": "node scripts/test-flood-event-e2e.mjs",
+    "test:realtime-alerts": "node scripts/test-realtime-alerts-e2e.mjs",
+    "test:outbound-sms": "node scripts/test-outbound-sms-flow.mjs",
+    "deploy:inbound-sms": "npx --yes supabase@latest functions deploy inbound-sms",
+    "deploy:notify-task-started": "npx --yes supabase@latest functions deploy notify-task-started",
+    "deploy:send-sms-alert": "npx --yes supabase@latest functions deploy send-sms-alert",
+    "deploy:ussd-wash": "npx --yes supabase@latest functions deploy ussd-wash",
+    "deploy:telecom": "npm run deploy:inbound-sms && npm run deploy:send-sms-alert && npm run deploy:ussd-wash && npm run deploy:notify-task-started"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
@@ -36,6 +46,7 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
+    "terser": "^5.47.1",
     "vite": "^5.0.8"
   }
 }

@@ -12,25 +12,60 @@ const AdminSmsGatewayLog = () => {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('sms_gateway_logs')
-        .select(`
-          id,
-          direction,
-          status,
-          phone_from,
-          phone_to,
-          message,
-          error_message,
-          created_at,
-          district:districts(name, region),
-          facility:facilities(name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(500)
+      const [smsLogsRes, reportsRes] = await Promise.all([
+        supabase
+          .from('sms_gateway_logs')
+          .select(`
+            id,
+            direction,
+            status,
+            phone_from,
+            phone_to,
+            message,
+            error_message,
+            created_at,
+            district:districts(name, region),
+            facility:facilities(name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(500),
+        // Safety net: show inbound SMS/USSD reports even if log writes were missed.
+        supabase
+          .from('reports')
+          .select(`
+            id,
+            reported_by,
+            notes,
+            created_at,
+            condition,
+            facility:facilities(name, district:districts(name, region))
+          `)
+          .or('notes.ilike.%SMS Report%,notes.ilike.%USSD%')
+          .order('created_at', { ascending: false })
+          .limit(300)
+      ])
 
-      if (fetchError) throw new Error(fetchError.message)
-      setLogs(data || [])
+      if (smsLogsRes.error) throw new Error(smsLogsRes.error.message)
+      if (reportsRes.error) throw new Error(reportsRes.error.message)
+
+      const reportBackfill = (reportsRes.data || []).map((r) => ({
+        id: `report-${r.id}`,
+        direction: 'inbound',
+        status: 'processed',
+        phone_from: r.reported_by,
+        phone_to: null,
+        message: `Report condition=${r.condition}${r.notes ? ` | ${r.notes}` : ''}`,
+        error_message: null,
+        created_at: r.created_at,
+        district: r.facility?.district || null,
+        facility: { name: r.facility?.name || '-' },
+        source: 'reports'
+      }))
+
+      const combined = [...(smsLogsRes.data || []), ...reportBackfill]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      setLogs(combined)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -98,6 +133,7 @@ const AdminSmsGatewayLog = () => {
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Time</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Direction</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Source</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Phone</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">District</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Facility</th>
@@ -122,6 +158,7 @@ const AdminSmsGatewayLog = () => {
                         {log.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-gray-600">{log.source || 'sms_gateway_logs'}</td>
                     <td className="px-4 py-3 text-gray-700">{log.phone_from || log.phone_to || '-'}</td>
                     <td className="px-4 py-3 text-gray-700">
                       {log.district?.name ? `${log.district.name} (${log.district.region})` : '-'}

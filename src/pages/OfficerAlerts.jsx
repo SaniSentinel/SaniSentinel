@@ -10,7 +10,8 @@ const ALERT_TYPES = {
   critical_status: { label: 'Critical Status', icon: '🚨' },
   overflow_detected: { label: 'Overflow Detected', icon: '💧' },
   system_failure: { label: 'System Failure', icon: '❌' },
-  climate_warning: { label: 'Climate Warning', icon: '🌧️' }
+  climate_warning: { label: 'Climate Warning', icon: '🌧️' },
+  worker_task_update: { label: 'Worker Task Update', icon: '🧰' }
 }
 
 const SEVERITY_DOT = {
