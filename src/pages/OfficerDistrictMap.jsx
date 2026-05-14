@@ -126,8 +126,9 @@ const OfficerDistrictMap = () => {
       subtitle={district ? `${district.name} District facilities only` : 'Facilities in your district'}
       actions={(
         <button
+          type="button"
           onClick={fetchDistrictFacilities}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          className="w-full sm:w-auto shrink-0 bg-green-600 text-white px-4 py-2.5 sm:py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
         >
           Refresh
         </button>
@@ -140,7 +141,7 @@ const OfficerDistrictMap = () => {
       {loading ? (
         <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">Loading district map...</div>
       ) : (
-        <div className="h-[calc(100vh-320px)] min-h-[520px] bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="min-w-0 rounded-xl border border-gray-200 overflow-hidden bg-white h-[clamp(15rem,calc(100dvh-11.5rem),28rem)] sm:h-[clamp(17rem,calc(100dvh-12.5rem),34rem)] lg:h-[calc(100vh-320px)] lg:min-h-[520px]">
           <MapContainer center={mapCenter} zoom={11} style={{ height: '100%', width: '100%' }} className="z-0">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

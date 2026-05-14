@@ -126,33 +126,69 @@ const SimpleSystemAdminDashboard = () => {
           </div>
         )}
       >
-        {/* System Health Status Bar */}
-        <div className="p-4 mb-6 rounded-xl border" style={{ 
-          background: `linear-gradient(135deg, rgba(128, 189, 65, 0.05) 0%, rgba(28, 171, 226, 0.05) 100%)`,
-          borderColor: unicefColors.success 
-        }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: unicefColors.success }}></div>
-                <span className="text-sm font-medium" style={{ color: unicefColors.success }}>System Operational</span>
+        {/* System health summary — mobile-first layout */}
+        <div
+          className="mb-6 overflow-hidden rounded-xl border p-4 shadow-sm sm:p-5"
+          style={{
+            borderColor: unicefColors.success,
+            background: `linear-gradient(135deg, rgba(128, 189, 65, 0.08) 0%, rgba(255,255,255,0.95) 45%, rgba(28, 171, 226, 0.06) 100%)`
+          }}
+        >
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between lg:gap-6">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-sm ring-1 ring-emerald-100">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ backgroundColor: unicefColors.success }} />
+                  <span
+                    className="relative inline-flex h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: unicefColors.success }}
+                  />
+                </span>
+                <span className="truncate text-sm font-semibold" style={{ color: unicefColors.success }}>
+                  System operational
+                </span>
               </div>
-              <div className="text-sm text-gray-600">
-                Uptime: {systemKPIs.systemUptime}% | Response Time: {systemKPIs.responseTime}ms
-              </div>
+              <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                <div className="rounded-lg border border-gray-100/90 bg-white/95 px-3 py-2.5 shadow-sm">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Uptime</dt>
+                  <dd className="mt-0.5 text-base font-bold tabular-nums text-gray-900">{systemKPIs.systemUptime}%</dd>
+                </div>
+                <div className="rounded-lg border border-gray-100/90 bg-white/95 px-3 py-2.5 shadow-sm">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Response</dt>
+                  <dd className="mt-0.5 text-base font-bold tabular-nums text-gray-900">{systemKPIs.responseTime}ms</dd>
+                </div>
+                <div className="rounded-lg border border-gray-100/90 bg-white/95 px-3 py-2.5 shadow-sm">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Last updated</dt>
+                  <dd className="mt-0.5 break-words text-sm font-semibold tabular-nums text-gray-900">
+                    {new Date().toLocaleString()}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="text-center">
-                <div className="font-semibold" style={{ color: unicefColors.primary }}>{mockStats.facilities.total}</div>
-                <div className="text-gray-600">Active Facilities</div>
+            <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-3 lg:w-72 lg:shrink-0 xl:w-80">
+              <div className="flex flex-col items-center justify-center rounded-lg border border-gray-100 bg-white/95 px-2 py-3 text-center shadow-sm sm:px-3 sm:py-4">
+                <span className="text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-500 sm:text-[11px]">
+                  Active facilities
+                </span>
+                <span className="mt-1 text-xl font-bold tabular-nums sm:text-2xl" style={{ color: unicefColors.primary }}>
+                  {mockStats.facilities.total}
+                </span>
               </div>
-              <div className="text-center">
-                <div className="font-semibold" style={{ color: unicefColors.success }}>{mockStats.districts.total}</div>
-                <div className="text-gray-600">Districts</div>
+              <div className="flex flex-col items-center justify-center rounded-lg border border-gray-100 bg-white/95 px-2 py-3 text-center shadow-sm sm:px-3 sm:py-4">
+                <span className="text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-500 sm:text-[11px]">
+                  Districts
+                </span>
+                <span className="mt-1 text-xl font-bold tabular-nums sm:text-2xl" style={{ color: unicefColors.success }}>
+                  {mockStats.districts.total}
+                </span>
               </div>
-              <div className="text-center">
-                <div className="font-semibold" style={{ color: unicefColors.warning }}>{mockStats.alerts.total}</div>
-                <div className="text-gray-600">Active Alerts</div>
+              <div className="flex flex-col items-center justify-center rounded-lg border border-gray-100 bg-white/95 px-2 py-3 text-center shadow-sm sm:px-3 sm:py-4">
+                <span className="text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-500 sm:text-[11px]">
+                  Active alerts
+                </span>
+                <span className="mt-1 text-xl font-bold tabular-nums sm:text-2xl" style={{ color: unicefColors.warning }}>
+                  {mockStats.alerts.total}
+                </span>
               </div>
             </div>
           </div>
@@ -473,32 +509,38 @@ const SimpleSystemAdminDashboard = () => {
           </div>
         </div>
 
-        {/* Footer with System Information */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <div className="flex items-center space-x-6">
-              <span>SaniSentinel v2.1.0</span>
-              <span>•</span>
-              <span>Database: Connected</span>
-              <span>•</span>
-              <span>Last Backup: 2 hours ago</span>
-              <span>•</span>
-              <span className="text-green-600 font-medium">UNICEF Design System</span>
+        {/* Footer — desktop only */}
+        <div className="mt-8 pt-6 border-t border-gray-200 hidden md:block">
+          <div className="flex min-w-0 flex-col gap-4 text-xs text-gray-500 sm:text-sm md:flex-row md:items-center md:justify-between md:gap-6">
+            <div className="flex min-w-0 flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:gap-y-1">
+              <span className="shrink-0 font-medium text-gray-600">SaniSentinel v2.1.0</span>
+              <span className="hidden md:inline text-gray-300" aria-hidden>
+                •
+              </span>
+              <span className="break-words leading-snug">Database: Connected</span>
+              <span className="hidden md:inline text-gray-300" aria-hidden>
+                •
+              </span>
+              <span className="break-words leading-snug">Last backup: 2 hours ago</span>
+              <span className="hidden md:inline text-gray-300" aria-hidden>
+                •
+              </span>
+              <span className="break-words font-medium leading-snug text-green-600">UNICEF Design System</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <Link 
-                to="/admin/system-logs" 
-                className="hover:opacity-80 transition-colors"
+            <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-gray-100 pt-3 md:border-t-0 md:pt-0 shrink-0">
+              <Link
+                to="/admin/system-logs"
+                className="font-medium hover:opacity-80 transition-colors whitespace-nowrap"
                 style={{ color: unicefColors.primary }}
               >
-                View System Logs
+                View system logs
               </Link>
-              <Link 
-                to="/admin/system-config" 
-                className="hover:opacity-80 transition-colors"
+              <Link
+                to="/admin/system-config"
+                className="font-medium hover:opacity-80 transition-colors whitespace-nowrap"
                 style={{ color: unicefColors.primary }}
               >
-                System Configuration
+                System configuration
               </Link>
             </div>
           </div>

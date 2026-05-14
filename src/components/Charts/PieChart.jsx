@@ -10,44 +10,57 @@ const PieChart = ({ data }) => {
   }
 
   const dataset = data.datasets[0]
-  const total = dataset.data.reduce((sum, value) => sum + value, 0)
-  
+  const rawValues = (dataset.data || []).map((v) => (Number.isFinite(Number(v)) ? Number(v) : 0))
+  const total = rawValues.reduce((sum, value) => sum + value, 0)
+
+  if (total <= 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-gray-500">No data to display</div>
+      </div>
+    )
+  }
+
   // Calculate angles for each segment
   let currentAngle = 0
-  const segments = dataset.data.map((value, index) => {
+  const segments = rawValues.map((value, index) => {
     const percentage = (value / total) * 100
     const angle = (value / total) * 360
     const startAngle = currentAngle
     currentAngle += angle
-    
+
     return {
       value,
       percentage,
       angle,
       startAngle,
       endAngle: currentAngle,
-      color: dataset.backgroundColor[index],
-      label: data.labels[index]
+      color: dataset.backgroundColor?.[index] || '#94a3b8',
+      label: data.labels?.[index] ?? `Series ${index + 1}`
     }
   })
 
   // Create SVG path for each segment
   const createPath = (segment) => {
-    const { startAngle, endAngle } = segment
+    const { startAngle, endAngle, value } = segment
     const centerX = 100
     const centerY = 100
     const radius = 80
-    
+
+    if (!value || endAngle - startAngle < 0.001) {
+      return ''
+    }
+
     const startAngleRad = (startAngle - 90) * (Math.PI / 180)
     const endAngleRad = (endAngle - 90) * (Math.PI / 180)
-    
+
     const x1 = centerX + radius * Math.cos(startAngleRad)
     const y1 = centerY + radius * Math.sin(startAngleRad)
     const x2 = centerX + radius * Math.cos(endAngleRad)
     const y2 = centerY + radius * Math.sin(endAngleRad)
-    
+
     const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0
-    
+
     return `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`
   }
 
@@ -56,23 +69,27 @@ const PieChart = ({ data }) => {
       {/* Pie Chart */}
       <div className="relative flex-shrink-0">
         <svg width="220" height="220" viewBox="0 0 200 200" className="transform -rotate-90">
-          {segments.map((segment, index) => (
-            <g key={index}>
-              <path
-                d={createPath(segment)}
-                fill={segment.color}
-                stroke="#ffffff"
-                strokeWidth="2"
-                className="hover:opacity-80 transition-opacity cursor-pointer"
-              />
-            </g>
-          ))}
+          {segments.map((segment, index) => {
+            const d = createPath(segment)
+            if (!d) return null
+            return (
+              <g key={index}>
+                <path
+                  d={d}
+                  fill={segment.color}
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  className="hover:opacity-80 transition-opacity cursor-pointer"
+                />
+              </g>
+            )
+          })}
         </svg>
         
         {/* Center label */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{total}</div>
+            <div className="text-3xl font-bold text-gray-900">{String(total)}</div>
             <div className="text-xs text-gray-500 font-medium mt-1">Total</div>
           </div>
         </div>

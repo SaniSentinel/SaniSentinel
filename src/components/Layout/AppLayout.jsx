@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AlertsSidebar from '../AlertsSidebar'
 import { useAlerts } from '../../hooks'
@@ -11,6 +11,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [navScrolled, setNavScrolled] = useState(false)
   const { summary } = useAlerts({ includeSummary: true })
   const { user, signOut } = useAuth()
   const isAdminUser = user?.role === 'admin' || user?.role === 'system_admin'
@@ -97,17 +98,30 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
     { label: 'Active Alerts', value: summary.total, color: 'text-blue-600', bgColor: 'bg-blue-50' },
   ]
 
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 6)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-green-50/20">
-      {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-50 bg-gradient-to-r from-white via-blue-50/30 to-green-50/30 shadow-lg border-b border-blue-100/50 backdrop-blur-sm">
+      {/* Top bar: fixed so it always stays visible while scrolling (sticky can fail with some parent overflow / mobile quirks) */}
+      <nav
+        className={`fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top,0px)] backdrop-blur-md transition-[box-shadow,background-color,border-color] duration-200 ease-out supports-[backdrop-filter]:backdrop-blur-lg ${
+          navScrolled
+            ? 'border-gray-200/95 bg-white shadow-[0_6px_28px_-6px_rgba(15,23,42,0.16)] lg:bg-white/98 lg:shadow-[0_8px_30px_-8px_rgba(15,23,42,0.12)]'
+            : 'border-gray-200/80 bg-white shadow-[0_1px_0_rgba(15,23,42,0.06)] lg:border-blue-100/60 lg:bg-gradient-to-r lg:from-white lg:via-blue-50/40 lg:to-green-50/40 lg:shadow-sm'
+        }`}
+      >
         <div className="px-3 sm:px-4 lg:px-6">
-          <div className="flex justify-between items-center h-14 sm:h-16">
+          <div className="flex h-14 items-center justify-between gap-2 min-w-0 sm:h-16">
             {/* Mobile Menu Button (Left side on mobile) */}
             {useSidebarLayout && (
               <button
                 onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-                className="lg:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                className="lg:hidden flex-shrink-0 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                 aria-label="Toggle menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,21 +135,21 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
             )}
             
             {/* Logo and Brand */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1 lg:flex-initial">
               <Link
                 to={isAdminUser ? '/admin-dashboard' : (isOfficer ? '/officer-dashboard' : '/dashboard')}
-                className="flex items-center space-x-2 sm:space-x-3 group"
+                className="flex items-center space-x-2 sm:space-x-3 group min-w-0"
               >
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-200 group-hover:scale-105">
                     <span className="text-white font-bold text-xs sm:text-sm">SS</span>
                   </div>
                 </div>
-                <div className="hidden sm:block">
-                  <div className="text-base sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent leading-tight">
+                <div className="hidden sm:block min-w-0">
+                  <div className="text-base sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent leading-tight truncate">
                     SaniSentinel
                   </div>
-                  <div className="text-xs text-gray-600 font-medium leading-tight">Climate-Resilient Sanitation Monitoring</div>
+                  <div className="text-xs text-gray-600 font-medium leading-tight line-clamp-2">Climate-Resilient Sanitation Monitoring</div>
                 </div>
               </Link>
             </div>
@@ -159,7 +173,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
               {/* Alerts Button */}
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
@@ -198,7 +212,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
                     ></div>
                     
                     {/* Dropdown Content */}
-                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-[min(100vw-1rem,18rem)] sm:w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
                       {/* User Info Section */}
                       <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-green-50 border-b border-gray-200">
                         <div className="flex items-center space-x-2 sm:space-x-3">
@@ -250,6 +264,11 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
           </div>
         </div>
       </nav>
+      {/* Layout offset for fixed navbar (safe area + h-14 / sm:h-16 toolbar) */}
+      <div
+        className="pointer-events-none h-[calc(env(safe-area-inset-top,0px)+3.5rem)] shrink-0 select-none sm:h-[calc(env(safe-area-inset-top,0px)+4rem)]"
+        aria-hidden
+      />
 
       {/* Secondary tab navigation — workers / generic users only (officers use sidebar) */}
       {!isAdminUser && !isOfficer && (
@@ -282,20 +301,24 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="min-w-0 flex-1">
                 {title && (
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-1 sm:mb-2 truncate">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-1 sm:mb-2 break-words">
                     {title}
                   </h1>
                 )}
                 {subtitle && (
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium flex items-center space-x-2">
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium flex items-start gap-2">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="truncate">{subtitle}</span>
+                    <span className="min-w-0 break-words leading-snug">{subtitle}</span>
                   </p>
                 )}
               </div>
-              {actions && <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">{actions}</div>}
+              {actions && (
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0 w-full sm:w-auto [&>button]:min-h-[2.5rem] [&>button]:sm:min-h-0">
+                  {actions}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -337,7 +360,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
                 className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                 onClick={() => setMobileSidebarOpen(false)}
               ></div>
-              <aside className="fixed left-0 top-14 sm:top-16 bottom-0 w-64 bg-white border-r border-gray-200 shadow-xl z-50 lg:hidden overflow-y-auto transform transition-transform duration-300">
+              <aside className="fixed left-0 bottom-0 z-50 w-64 overflow-y-auto border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 lg:hidden top-[calc(3.5rem+env(safe-area-inset-top,0px))] sm:top-[calc(4rem+env(safe-area-inset-top,0px))]">
                 <div className="p-4">
                 {isAdminUser &&
                   adminSidebarSections.map((section, sectionIndex) => (
@@ -434,7 +457,7 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
           )}
 
           {/* Desktop Sidebar - Hidden on mobile */}
-          <aside className="hidden lg:block fixed left-0 top-[64px] bottom-0 w-64 bg-white border-r border-gray-200 shadow-sm overflow-y-auto z-40">
+          <aside className="fixed bottom-0 left-0 z-40 hidden w-64 overflow-y-auto border-r border-gray-200 bg-white shadow-sm lg:block top-[calc(4rem+env(safe-area-inset-top,0px))]">
             <div className="p-4">
               {isAdminUser &&
                 adminSidebarSections.map((section, sectionIndex) => (
@@ -527,8 +550,12 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
           </aside>
 
           {/* Main Content Area - Responsive offset */}
-          <main className="flex-1 lg:ml-64 min-h-screen bg-gray-50 pt-0">
-            <div className="p-3 sm:p-4 lg:p-6">
+          <main
+            className={`flex-1 lg:ml-64 min-h-screen bg-gray-50 pt-0 ${
+              isOfficer ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0' : ''
+            }`}
+          >
+            <div className="p-3 sm:p-4 lg:p-6 max-w-[100vw] min-w-0 overflow-x-hidden">
               {children}
             </div>
           </main>
@@ -546,6 +573,42 @@ const AppLayout = ({ children, title, subtitle, actions }) => {
         isOpen={alertsSidebarOpen}
         onToggle={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
       />
+
+      {/* Officer: thumb-friendly bottom navigation (mobile / tablet below lg) */}
+      {isOfficer && (
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(15,23,42,0.08)] pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
+          aria-label="District navigation"
+        >
+          <div className="flex overflow-x-auto gap-0.5 px-1.5 py-1.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {officerSidebarSections.flatMap((section) => section.items).map((item) => {
+              const active = officerNavIsActive(item)
+              return (
+                <Link
+                  key={`${item.href}-${item.name}`}
+                  to={item.href}
+                  className={`flex flex-col items-center justify-center gap-0.5 shrink-0 w-[4.75rem] snap-start rounded-xl px-1 py-1.5 transition-colors ${
+                    active
+                      ? 'bg-gradient-to-br from-blue-500 to-green-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 active:bg-gray-100'
+                  }`}
+                >
+                  <span className="text-lg leading-none" aria-hidden>
+                    {item.icon}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold leading-tight text-center line-clamp-2 px-0.5 ${
+                      active ? 'text-white' : 'text-gray-700'
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   )
 }

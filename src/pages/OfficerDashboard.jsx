@@ -264,20 +264,24 @@ const OfficerDashboard = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 min-w-0">
         {cards.map((card) => (
-          <div key={card.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600">{card.title}</p>
-              <span className="text-xl">{card.icon}</span>
+          <div key={card.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 min-w-0">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <p className="text-sm text-gray-600 min-w-0 flex-1 leading-snug">{card.title}</p>
+              <span className="text-xl shrink-0 leading-none" aria-hidden>
+                {card.icon}
+              </span>
             </div>
-            <p className={`text-3xl font-bold ${card.color}`}>{loading ? '...' : card.value}</p>
+            <p className={`text-2xl sm:text-3xl font-bold tabular-nums ${card.color}`}>
+              {loading ? '...' : card.value}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 min-w-0">
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 min-w-0">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Submit facility condition</h2>
           <p className="text-sm text-gray-500 mb-4">
             Log a condition report from the field without SMS. This updates the facility&apos;s
@@ -350,14 +354,14 @@ const OfficerDashboard = () => {
           </form>
         </section>
 
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 min-w-0">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">District monthly report</h2>
           <p className="text-sm text-gray-500 mb-4">
             Auto-metrics for your district: problem reports in the month, current average facility
             risk, and maintenance outcomes for tasks created in the month.
           </p>
 
-          <div className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 mb-6">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Month</label>
               <input
@@ -423,7 +427,7 @@ const OfficerDashboard = () => {
                     ? `${monthly.maintenanceCompletionPct}%`
                     : '—'}
                 </dd>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 break-words">
                   Of maintenance tasks <strong>created</strong> in this month for your district:{' '}
                   {monthly.maintenanceBreakdown.completed} completed of{' '}
                   {monthly.maintenanceBreakdown.total} total.

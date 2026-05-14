@@ -385,7 +385,7 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
 
   if (!isOpen) {
     return (
-      <div className={`fixed right-0 top-0 h-full z-40 ${className}`}>
+      <div className={`hidden md:block fixed right-0 top-0 h-full z-40 ${className}`}>
         <button
           onClick={onToggle}
           className="bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-colors mt-20"
@@ -405,7 +405,9 @@ const AlertsSidebar = ({ isOpen = true, onToggle, className = '' }) => {
   }
 
   return (
-    <div className={`fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-40 flex flex-col ${className}`}>
+    <div
+      className={`fixed right-0 top-0 h-full w-full max-w-md sm:w-96 sm:max-w-none bg-white shadow-2xl border-l z-40 flex flex-col ${className}`}
+    >
       {/* Header */}
       <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">

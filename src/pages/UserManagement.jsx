@@ -8,11 +8,13 @@ import { isDistrictUuid, resolveDistrictUuidFromMetadata } from '../lib/district
 // persistSession is false so the admin's own session is never overwritten.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Separate storage key avoids "Multiple GoTrueClient instances" fighting the main app's session.
 const createAccountClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
-    detectSessionInUrl: false
+    detectSessionInUrl: false,
+    storageKey: 'sb-sanisentinel-admin-create-account'
   }
 })
 

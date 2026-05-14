@@ -1,7 +1,7 @@
 import React from 'react'
 
 const BarChart = ({ data }) => {
-  if (!data || !data.datasets || !data.labels) {
+  if (!data || !Array.isArray(data.datasets) || !Array.isArray(data.labels)) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-gray-500">No data available</div>
@@ -10,15 +10,27 @@ const BarChart = ({ data }) => {
   }
 
   const { labels, datasets } = data
-  
-  // Calculate max value for scaling
-  const maxValue = Math.max(
-    ...datasets.flatMap(dataset => dataset.data)
+
+  const numericRows = datasets.map((dataset) =>
+    (dataset.data || []).map((v) => (Number.isFinite(Number(v)) ? Number(v) : 0))
   )
-  
+  const flatValues = numericRows.flat()
+
+  if (labels.length === 0 || flatValues.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-gray-500">No data available</div>
+      </div>
+    )
+  }
+
+  const maxValue = Math.max(0, ...flatValues)
+  const scaleMax = maxValue > 0 ? maxValue : 1
+
   const chartHeight = 200
   const chartWidth = 400
-  const barWidth = Math.min(40, chartWidth / (labels.length * datasets.length + labels.length))
+  const denom = labels.length * datasets.length + labels.length
+  const barWidth = Math.min(40, chartWidth / Math.max(denom, 1))
   const groupWidth = barWidth * datasets.length
   const groupSpacing = 20
 
@@ -50,7 +62,7 @@ const BarChart = ({ data }) => {
           {[0, 25, 50, 75, 100].map((value) => {
             const percentage = value / 100
             const scaledValue = Math.round(maxValue * percentage)
-            const y = chartHeight + 20 - (percentage * chartHeight)
+            const y = chartHeight + 20 - percentage * chartHeight
             
             return (
               <g key={value}>
@@ -91,8 +103,8 @@ const BarChart = ({ data }) => {
             return (
               <g key={labelIndex}>
                 {datasets.map((dataset, datasetIndex) => {
-                  const value = dataset.data[labelIndex] || 0
-                  const barHeight = (value / maxValue) * chartHeight
+                  const value = numericRows[datasetIndex]?.[labelIndex] ?? 0
+                  const barHeight = (value / scaleMax) * chartHeight
                   const barX = groupX + datasetIndex * barWidth
                   const barY = chartHeight + 20 - barHeight
                   
@@ -115,7 +127,7 @@ const BarChart = ({ data }) => {
                           textAnchor="middle"
                           className="text-xs fill-gray-700 font-medium"
                         >
-                          {value}
+                          {String(value)}
                         </text>
                       )}
                     </g>

@@ -212,19 +212,19 @@ const OfficerWorkers = () => {
   if (user?.role !== 'district_officer') return null
 
   const actions = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       <button
         type="button"
         onClick={openAdd}
         disabled={!!officerDistrictScopeLoading || !user?.district_id}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full min-h-[2.5rem] sm:min-h-0 sm:w-auto shrink-0 bg-blue-600 text-white px-4 py-2.5 sm:py-2 rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Add worker
       </button>
       <button
         type="button"
         onClick={load}
-        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+        className="w-full min-h-[2.5rem] sm:min-h-0 sm:w-auto shrink-0 bg-green-600 text-white px-4 py-2.5 sm:py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
       >
         Refresh
       </button>
@@ -253,78 +253,142 @@ const OfficerWorkers = () => {
           </button>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 min-w-[11rem]">
-                    Email
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Open tasks</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm min-w-0">
+          {sorted.length === 0 ? (
+            <p className="text-center py-12 px-4 text-gray-500">No workers listed for your district.</p>
+          ) : (
+            <>
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Phone</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600 min-w-[11rem]">
+                        Email
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Open tasks</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sorted.map((w) => (
+                      <tr key={w.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{w.name}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {ROLE_LABELS[w.role] || w.role}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{w.phone}</td>
+                        <td className="px-4 py-3 text-gray-600 break-all max-w-[14rem]">
+                          {w.email ? (
+                            <a href={`mailto:${w.email}`} className="text-green-700 hover:underline">
+                              {w.email}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {w.active ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 font-semibold">
+                            {openByWorker[w.id] ?? 0}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(w)}
+                            className="text-green-700 hover:text-green-900 font-medium"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="lg:hidden divide-y divide-gray-100" role="list">
                 {sorted.map((w) => (
-                  <tr key={w.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{w.name}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {ROLE_LABELS[w.role] || w.role}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{w.phone}</td>
-                    <td className="px-4 py-3 text-gray-600 break-all max-w-[14rem]">
-                      {w.email ? (
-                        <a href={`mailto:${w.email}`} className="text-green-700 hover:underline">
-                          {w.email}
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {w.active ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 font-semibold">
-                        {openByWorker[w.id] ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                  <li key={w.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-gray-900 break-words">{w.name}</p>
+                        <p className="text-sm text-gray-600 mt-0.5">{ROLE_LABELS[w.role] || w.role}</p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => openEdit(w)}
-                        className="text-green-700 hover:text-green-900 font-medium"
+                        className="shrink-0 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
                       >
                         Edit
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                    <dl className="grid grid-cols-1 gap-2 text-sm">
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                        <dt className="text-gray-500 shrink-0 sm:w-24">Phone</dt>
+                        <dd className="text-gray-900 break-all min-w-0">{w.phone || '—'}</dd>
+                      </div>
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                        <dt className="text-gray-500 shrink-0 sm:w-24">Email</dt>
+                        <dd className="min-w-0 break-all text-gray-800">
+                          {w.email ? (
+                            <a href={`mailto:${w.email}`} className="text-green-700 hover:underline">
+                              {w.email}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </dd>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <dt className="text-gray-500 sr-only">Status</dt>
+                        <dd>
+                          {w.active ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                              Inactive
+                            </span>
+                          )}
+                        </dd>
+                        <span className="text-gray-400" aria-hidden>
+                          ·
+                        </span>
+                        <span className="text-gray-600">
+                          Open tasks:{' '}
+                          <span className="inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                            {openByWorker[w.id] ?? 0}
+                          </span>
+                        </span>
+                      </div>
+                    </dl>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          {sorted.length === 0 && (
-            <p className="text-center py-12 text-gray-500">No workers listed for your district.</p>
+              </ul>
+            </>
           )}
         </div>
       )}
 
       {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4 bg-black/40">
+          <div className="bg-white rounded-t-2xl shadow-xl max-w-md w-full p-6 sm:rounded-xl max-h-[92dvh] overflow-y-auto mb-[env(safe-area-inset-bottom,0px)] sm:mb-0">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Add worker</h3>
             <p className="text-sm text-gray-500 mb-4">New worker in your district</p>
             <form onSubmit={saveAdd} className="space-y-4">
@@ -394,8 +458,8 @@ const OfficerWorkers = () => {
       )}
 
       {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4 bg-black/40">
+          <div className="bg-white rounded-t-2xl shadow-xl max-w-md w-full p-6 sm:rounded-xl max-h-[92dvh] overflow-y-auto mb-[env(safe-area-inset-bottom,0px)] sm:mb-0">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Worker contact details</h3>
             <p className="text-sm text-gray-500 mb-4">{editing?.name}</p>
             <form onSubmit={saveEdit} className="space-y-4">
