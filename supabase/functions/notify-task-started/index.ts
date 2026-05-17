@@ -217,25 +217,9 @@ serve(async (req) => {
     // SMS is disabled — success is determined by email only.
     const allNotificationsOk = emailResult.ok
 
-    // Record SMS outcome for admin observability.
-    await supabase.from('sms_gateway_logs').insert({
-      direction: 'outbound',
-      status: smsResult.ok ? 'sent' : 'failed',
-      phone_to: task.worker.phone,
-      message: smsMessage,
-      facility_id: task.facility?.id || null,
-      district_id: task.facility?.district?.id || null,
-      error_message: smsResult.ok ? null : smsResult.error || null,
-      metadata: {
-        notification_type: 'task_started',
-        task_id: task.id,
-        worker_id: task.worker.id,
-        sms_sent: smsResult.ok,
-        sms_error: smsResult.ok ? null : smsResult.error || null,
-        email_sent: emailResult.ok,
-        email_error: emailResult.ok ? null : emailResult.error || null,
-      },
-    })
+    // SMS logging is skipped while SMS notifications are disabled.
+    // No sms_gateway_logs entry is written to avoid polluting the admin log
+    // with expected failures.
 
     return new Response(
       JSON.stringify({
