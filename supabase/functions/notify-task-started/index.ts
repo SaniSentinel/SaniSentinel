@@ -185,7 +185,11 @@ serve(async (req) => {
       `Task started: ${taskType} at ${facilityName} (${districtName}). ` +
       `Priority: ${task.priority}. Due: ${task.due_date}.`
 
-    const smsResult = await sendSMS(task.worker.phone, smsMessage)
+    // SMS notifications are temporarily disabled.
+    const smsResult: { ok: boolean; error?: string } = {
+      ok: false,
+      error: 'SMS notifications are currently disabled',
+    }
 
     let emailResult: { ok: boolean; error?: string; raw?: string } = {
       ok: false,
@@ -210,7 +214,8 @@ serve(async (req) => {
       emailResult = await sendEmail(task.worker.email, subject, html)
     }
 
-    const allNotificationsOk = smsResult.ok && emailResult.ok
+    // SMS is disabled — success is determined by email only.
+    const allNotificationsOk = emailResult.ok
 
     // Record SMS outcome for admin observability.
     await supabase.from('sms_gateway_logs').insert({

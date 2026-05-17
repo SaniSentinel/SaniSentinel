@@ -492,9 +492,7 @@ export const maintenance = {
       if (shouldNotify) {
         const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
           'notify-task-started',
-          {
-            body: { task_id: taskId },
-          },
+          { body: { task_id: taskId } },
         )
 
         if (notifyError) {
@@ -505,13 +503,13 @@ export const maintenance = {
         }
 
         if (!notifyData?.success) {
+          // Only surface email errors — SMS is intentionally disabled.
           const emailErr = notifyData?.email?.error ? ` Email: ${notifyData.email.error}.` : ''
-          const smsErr = notifyData?.sms?.error ? ` SMS: ${notifyData.sms.error}.` : ''
-          return {
-            data: updateResult.data,
-            error:
-              `Task started, but notification failed.` +
-              `${emailErr}${smsErr}`.trim(),
+          if (emailErr) {
+            return {
+              data: updateResult.data,
+              error: `Task started, but notification failed.${emailErr}`.trim(),
+            }
           }
         }
       }
