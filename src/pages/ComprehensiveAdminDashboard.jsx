@@ -9,7 +9,6 @@ import KPICard from '../components/Charts/KPICard'
 
 const ComprehensiveAdminDashboard = () => {
   const [timeRange, setTimeRange] = useState('7d')
-  const [refreshInterval, setRefreshInterval] = useState(30000)
 
   const { 
     stats, 
@@ -21,7 +20,6 @@ const ComprehensiveAdminDashboard = () => {
     lastUpdated 
   } = useDashboard({
     autoRefresh: true,
-    refreshInterval,
     includeActivity: true,
     includeMetrics: true,
     timeRange

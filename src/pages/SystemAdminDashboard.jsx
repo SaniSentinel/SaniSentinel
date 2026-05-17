@@ -15,7 +15,6 @@ const SystemAdminDashboard = () => {
 const SystemAdminDashboardContent = () => {
   const [timeRange, setTimeRange] = useState('7d')
   const [selectedMetric, setSelectedMetric] = useState('facilities')
-  const [refreshInterval, setRefreshInterval] = useState(30000)
   
   const { 
     stats, 
@@ -27,7 +26,6 @@ const SystemAdminDashboardContent = () => {
     lastUpdated 
   } = useDashboard({
     autoRefresh: true,
-    refreshInterval,
     includeActivity: true,
     includeMetrics: true,
     timeRange
@@ -117,23 +115,6 @@ const SystemAdminDashboardContent = () => {
                 style={{ borderColor: unicefColors.primary }}
               >
                 {timeRangeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Refresh Interval Selector */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Refresh:</label>
-              <select
-                value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{ borderColor: unicefColors.primary }}
-              >
-                {refreshIntervalOptions.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

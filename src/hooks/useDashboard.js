@@ -65,7 +65,7 @@ export const useDashboard = (options = {}) => {
 
   const {
     autoRefresh = true,
-    refreshInterval = 30000, // 30 seconds
+    refreshInterval = 300000, // 5 minutes — realtime channels handle live updates
     includeActivity = true,
     includeMetrics = true
   } = options
@@ -220,9 +220,14 @@ export const useDashboard = (options = {}) => {
     }
   }, [autoRefresh, loadStats, fatalFetchError])
 
-  // Setup periodic refresh
+  // Setup periodic refresh as a fallback only — realtime channels already
+  // handle live updates, so we use a long interval to avoid hammering the
+  // token-refresh endpoint and hitting Supabase's 429 rate limit.
   useEffect(() => {
     if (!autoRefresh || !refreshInterval || fatalFetchError) return
+    // Skip the interval entirely if realtime is active — channels will trigger
+    // loadStats() on any relevant DB change, making polling redundant.
+    if (autoRefresh) return
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing dashboard stats...')
