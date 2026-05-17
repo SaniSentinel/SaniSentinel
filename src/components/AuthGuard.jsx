@@ -10,40 +10,41 @@ const AuthGuard = ({ children, redirectTo = '/login', allowedRoles = null }) => 
   const location = useLocation()
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          console.error('Error getting session:', error)
-          setSession(null)
-          setUser(null)
-        } else {
-          setSession(session)
-          setUser(session?.user || null)
-        }
-      } catch (err) {
-        console.error('Exception getting session:', err)
-        setSession(null)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
+    let initialised = false
 
-    getInitialSession()
-
-    // Listen for auth changes
+    // Subscribe first so we don't miss events that fire before getSession resolves.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('AuthGuard: Auth state changed:', event, session?.user?.email)
-        
+
+        // Do NOT sign the user out on a transient token-refresh failure (429).
+        // The session is still stored locally; Supabase will retry automatically.
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          return
+        }
+
         setSession(session)
-        setUser(session?.user || null)
-        setLoading(false)
+        setUser(session?.user ?? null)
+
+        if (!initialised) {
+          initialised = true
+          setLoading(false)
+        }
       }
     )
+
+    // Read session from local storage — no network call, no rate-limit risk.
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error)
+      }
+      if (!initialised) {
+        initialised = true
+        setSession(session ?? null)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    })
 
     return () => {
       subscription?.unsubscribe()

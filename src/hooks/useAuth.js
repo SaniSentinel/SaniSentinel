@@ -129,20 +129,23 @@ export const useAuth = () => {
     return userData.district_id === districtId
   }
 
-  // Get current user session
+  // Get current user session - reads from local storage (no network call)
   const getCurrentUser = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const { data: { user }, error } = await supabase.auth.getUser()
+      // Use getSession() instead of getUser() to avoid triggering a token
+      // refresh network call on every mount. getSession() reads from local
+      // storage and is safe to call frequently without hitting rate limits.
+      const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
         throw error
       }
 
-      setUser(user)
-      return user
+      setUser(session?.user ?? null)
+      return session?.user ?? null
     } catch (err) {
       console.error('Error getting current user:', err)
       setError(err.message)
@@ -229,23 +232,42 @@ export const useAuth = () => {
 
   // Initialize auth state and set up listener
   useEffect(() => {
-    // Get initial session
-    getCurrentUser()
+    let initialised = false
 
-    // Listen for auth changes
+    // Listen for auth changes FIRST (Supabase recommendation) so we don't
+    // miss events that fire before getSession() resolves.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
-        
-        if (session?.user) {
-          setUser(session.user)
-        } else {
-          setUser(null)
+
+        // Ignore transient token-refresh failures — do NOT sign the user out
+        // just because a refresh attempt was rate-limited (429). The session
+        // is still valid in local storage; Supabase will retry automatically.
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          return
         }
-        
-        setLoading(false)
+
+        setUser(session?.user ?? null)
+
+        // Only clear loading after the first event so the initial getSession()
+        // call and this listener don't race each other.
+        if (!initialised) {
+          initialised = true
+          setLoading(false)
+        }
       }
     )
+
+    // Get initial session from local storage (no network call).
+    // If the onAuthStateChange fires first it will have already set state,
+    // but this is still needed as a fallback for the very first render.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!initialised) {
+        initialised = true
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    })
 
     return () => {
       subscription?.unsubscribe()
