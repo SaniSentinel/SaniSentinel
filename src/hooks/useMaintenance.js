@@ -246,9 +246,10 @@ export const useMaintenance = (options = {}) => {
     }
   }, [autoRefresh, loadTasks, loadStats, loadSummary, includeStats])
 
-  // Setup periodic refresh
+  // Setup periodic refresh — disabled when realtime is active since the
+  // channel already calls loadTasks() on every DB change.
   useEffect(() => {
-    if (!autoRefresh || !refreshInterval) return
+    if (!autoRefresh || !refreshInterval || autoRefresh) return
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing maintenance data...')

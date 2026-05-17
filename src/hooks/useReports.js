@@ -177,9 +177,10 @@ export const useReports = (options = {}) => {
     }
   }, [autoRefresh, loadReports, loadStats, includeStats])
 
-  // Setup periodic refresh
+  // Setup periodic refresh — disabled when realtime is active since the
+  // channel already calls loadReports() on every DB change.
   useEffect(() => {
-    if (!autoRefresh || !refreshInterval) return
+    if (!autoRefresh || !refreshInterval || autoRefresh) return
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing reports data...')
