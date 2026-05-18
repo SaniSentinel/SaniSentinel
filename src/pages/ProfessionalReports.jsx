@@ -379,34 +379,34 @@ const ProfessionalReports = () => {
       subtitle={reportsSubtitle}
       actions={actions}
     >
-      {/* Worker / Community Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+      {/* Worker / Community Tabs - Enhanced Design */}
+      <div className="flex gap-2 mb-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-1.5 w-fit shadow-inner border border-gray-200">
         <button
           onClick={() => setActiveTab('workers')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 transform ${
             activeTab === 'workers'
-              ? 'bg-white text-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200 scale-105'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
           }`}
         >
-          <span>👷</span>
-          Workers Reports
-          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-            activeTab === 'workers' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+          <span className="text-lg">👷</span>
+          <span>Workers Reports</span>
+          <span className={`ml-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+            activeTab === 'workers' ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-gray-200 text-gray-700'
           }`}>{workerCount}</span>
         </button>
         <button
           onClick={() => setActiveTab('community')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 transform ${
             activeTab === 'community'
-              ? 'bg-white text-green-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg shadow-green-200 scale-105'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
           }`}
         >
-          <span>🏘️</span>
-          Community Reports
-          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-            activeTab === 'community' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+          <span className="text-lg">🏘️</span>
+          <span>Community Reports</span>
+          <span className={`ml-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+            activeTab === 'community' ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-gray-200 text-gray-700'
           }`}>{communityCount}</span>
         </button>
       </div>
@@ -446,26 +446,39 @@ const ProfessionalReports = () => {
         />
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+      {/* Filters - Enhanced Design */}
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-md border border-gray-200 p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Filters</h3>
+          </div>
           <button
             onClick={clearFilters}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
             Clear All Filters
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-4">
           {isNationalAdmin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select District</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span>📍</span>
+                Select District
+              </label>
               <select
                 value={filters.districtId}
                 onChange={(e) => handleFilterChange('districtId', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm"
               >
                 <option value="all">All Districts</option>
                 {allDistricts.map((district) => (
@@ -479,12 +492,15 @@ const ProfessionalReports = () => {
 
           {isDistrictOfficer && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Area</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span>🗺️</span>
+                Select Area
+              </label>
               <select
                 value={filters.area}
                 onChange={(e) => handleFilterChange('area', e.target.value)}
                 disabled={officerDistrictScopeLoading}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="all">All Areas</option>
                 {districtAreas.map((area) => (
@@ -498,29 +514,35 @@ const ProfessionalReports = () => {
 
           {/* Condition Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              <span>🔍</span>
+              Condition
+            </label>
             <select 
               value={filters.condition}
               onChange={(e) => handleFilterChange('condition', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm"
             >
               <option value="all">All Conditions</option>
-              <option value="good">Good</option>
-              <option value="damaged">Damaged</option>
-              <option value="overflow">Overflow</option>
-              <option value="dry">Dry</option>
-              <option value="blocked">Blocked</option>
-              <option value="out_of_service">Out of Service</option>
+              <option value="good">✅ Good</option>
+              <option value="damaged">🔨 Damaged</option>
+              <option value="overflow">💧 Overflow</option>
+              <option value="dry">☀️ Dry</option>
+              <option value="blocked">🚫 Blocked</option>
+              <option value="out_of_service">⚠️ Out of Service</option>
             </select>
           </div>
 
           {/* Date Range Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              <span>📅</span>
+              Date Range
+            </label>
             <select 
               value={filters.dateRange}
               onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm"
             >
               <option value="1d">Last 24 Hours</option>
               <option value="7d">Last 7 Days</option>
@@ -533,96 +555,124 @@ const ProfessionalReports = () => {
 
           {/* Reporter Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Reporter</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              <span>📞</span>
+              Reporter
+            </label>
             <input
               type="text"
               placeholder="Search by phone number..."
               value={filters.reporter}
               onChange={(e) => handleFilterChange('reporter', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm placeholder:text-gray-400"
             />
           </div>
         </div>
 
         {/* Custom Date Range */}
         {filters.dateRange === 'custom' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span>📆</span>
+                Start Date
+              </label>
               <input
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <span>📆</span>
+                End Date
+              </label>
               <input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm"
               />
             </div>
           </div>
         )}
 
         {/* Facility Search */}
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Facility Search</label>
+        <div className="mt-5">
+          <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+            <span>🏢</span>
+            Facility Search
+          </label>
           <input
             type="text"
             placeholder="Search by facility name..."
             value={filters.facility}
             onChange={(e) => handleFilterChange('facility', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-400 transition-colors shadow-sm placeholder:text-gray-400"
           />
         </div>
       </div>
 
-      {/* Reports Table */}
-      <div ref={printableReportRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+      {/* Reports Table - Enhanced Design */}
+      <div ref={printableReportRef} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Reports ({filteredReports.length})
-            </h3>
-            <div className="text-sm text-gray-500">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Reports <span className="text-green-600">({filteredReports.length})</span>
+              </h3>
+            </div>
+            <div className="text-sm font-semibold text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
               Showing {startIndex + 1}-{Math.min(endIndex, filteredReports.length)} of {filteredReports.length}
             </div>
           </div>
         </div>
 
         {filteredReports.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reports Found</h3>
-            <p className="text-gray-600">Try adjusting your filters to see more results.</p>
+          <div className="text-center py-16 bg-gradient-to-b from-gray-50 to-white">
+            <div className="text-gray-300 text-7xl mb-4">📝</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No Reports Found</h3>
+            <p className="text-gray-600 mb-6">Try adjusting your filters to see more results.</p>
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            </button>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date & Time
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      📅 Date & Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Facility
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      🏢 Facility
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {isDistrictOfficer ? 'Area' : 'District'}
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      {isDistrictOfficer ? '🗺️ Area' : '📍 District'}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Condition
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      🔍 Condition
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Reporter
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      📞 Reporter
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notes
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      📝 Notes
                     </th>
                   </tr>
                 </thead>
@@ -630,28 +680,28 @@ const ProfessionalReports = () => {
                   {currentReports.map((report) => (
                     <tr 
                       key={report.id} 
-                      className={`${getConditionRowColor(report.condition)} hover:bg-gray-50 transition-colors`}
+                      className={`${getConditionRowColor(report.condition)} hover:shadow-md hover:scale-[1.01] transition-all duration-200`}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {formatDate(report.created_at)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <div>
-                          <div className="font-medium">{report.facility?.name || 'Unknown Facility'}</div>
-                          <div className="text-gray-500 text-xs">{report.facility?.type || 'Unknown Type'}</div>
+                          <div className="font-bold text-gray-900">{report.facility?.name || 'Unknown Facility'}</div>
+                          <div className="text-gray-500 text-xs font-medium mt-0.5">{report.facility?.type || 'Unknown Type'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div>
                           {isDistrictOfficer ? (
                             <>
-                              <div>{getReportAreaLabel(report)}</div>
-                              <div className="text-gray-500 text-xs">{report.facility?.name || ''}</div>
+                              <div className="font-semibold">{getReportAreaLabel(report)}</div>
+                              <div className="text-gray-500 text-xs font-medium mt-0.5">{report.facility?.name || ''}</div>
                             </>
                           ) : (
                             <>
-                              <div>{report.facility?.district?.name || 'Unknown'}</div>
-                              <div className="text-gray-500 text-xs">{report.facility?.district?.region || ''}</div>
+                              <div className="font-semibold">{report.facility?.district?.name || 'Unknown'}</div>
+                              <div className="text-gray-500 text-xs font-medium mt-0.5">{report.facility?.district?.region || ''}</div>
                             </>
                           )}
                         </div>
@@ -661,14 +711,14 @@ const ProfessionalReports = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div>
-                          <div>{formatPhoneNumber(report.reported_by)}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="font-semibold">{formatPhoneNumber(report.reported_by)}</div>
+                          <div className="text-xs font-medium mt-1">
                             {isWorkerReport(report) ? (
-                              <span className="inline-flex items-center gap-1 text-blue-600">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full font-bold">
                                 <span>👷</span> Worker
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-green-600">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold">
                                 <span>🏘️</span> Community
                               </span>
                             )}
@@ -679,13 +729,13 @@ const ProfessionalReports = () => {
                         {report.notes ? (
                           <div className="space-y-1">
                             {report.notes.split(' | ').map((part, i) => (
-                              <div key={i} className="text-xs text-gray-700 leading-relaxed">
+                              <div key={i} className="text-xs text-gray-700 leading-relaxed font-medium bg-gray-50 px-2 py-1 rounded">
                                 {part}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-gray-400 font-medium">—</span>
                         )}
                       </td>
                     </tr>
@@ -694,20 +744,20 @@ const ProfessionalReports = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {/* Pagination - Enhanced Design */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200">
+              <div className="px-6 py-5 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredReports.length)} of {filteredReports.length} results
+                  <div className="text-sm font-semibold text-gray-700 bg-gray-100 px-4 py-2 rounded-lg">
+                    Showing <span className="text-green-600">{startIndex + 1}</span> to <span className="text-green-600">{Math.min(endIndex, filteredReports.length)}</span> of <span className="text-green-600">{filteredReports.length}</span> results
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
-                      Previous
+                      ← Previous
                     </button>
                     
                     <div className="flex items-center space-x-1">
@@ -727,10 +777,10 @@ const ProfessionalReports = () => {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all shadow-sm ${
                               currentPage === pageNum
-                                ? 'bg-green-600 text-white'
-                                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                                ? 'bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg shadow-green-200 scale-110'
+                                : 'text-gray-700 bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                             }`}
                           >
                             {pageNum}
@@ -742,9 +792,9 @@ const ProfessionalReports = () => {
                     <button
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm font-bold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
-                      Next
+                      Next →
                     </button>
                   </div>
                 </div>
