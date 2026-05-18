@@ -30,7 +30,8 @@ Set Edge Function secrets in Supabase:
 
 For **sandbox testing**:
 - `AFRICAS_TALKING_USERNAME=sandbox`
-- API key = your sandbox API key from AT dashboard
+- API key = your sandbox API key from AT dashboard (not the production key)
+- Edge functions use `https://api.sandbox.africastalking.com` when username is `sandbox`
 
 You can set secrets via Supabase Dashboard or CLI.
 

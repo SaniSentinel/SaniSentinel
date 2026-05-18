@@ -238,7 +238,10 @@ async function testAfricasTalkingConfig() {
       const formData = new FormData()
       formData.append('username', username)
       
-      const response = await fetch('https://api.africastalking.com/version1/user', {
+      const userHost = username.toLowerCase() === 'sandbox'
+        ? 'https://api.sandbox.africastalking.com'
+        : 'https://api.africastalking.com'
+      const response = await fetch(`${userHost}/version1/user`, {
         method: 'POST',
         headers: {
           'apiKey': apiKey,

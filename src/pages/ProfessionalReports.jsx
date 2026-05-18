@@ -3,10 +3,13 @@ import AppLayout from '../components/Layout/AppLayout'
 import StatusBadge from '../components/UI/StatusBadge'
 import MetricCard from '../components/UI/MetricCard'
 import { reports } from '../lib/reports'
+import { districts } from '../lib/districts'
+import { supabase } from '../lib/supabase'
+import { buildAreaOptionsFromFacilities, getReportAreaLabel } from '../lib/reportAreas'
 import { useAuth } from '../hooks/useAuth'
 
 const ProfessionalReports = () => {
-  const { user } = useAuth()
+  const { user, isDistrictOfficer, officerDistrictScopeLoading } = useAuth()
   const isNationalAdmin = user?.role === 'system_admin' || user?.role === 'admin'
   const [reportsData, setReportsData] = useState([])
   const [filteredReports, setFilteredReports] = useState([])
@@ -24,7 +27,8 @@ const ProfessionalReports = () => {
 
   // Filter states
   const [filters, setFilters] = useState({
-    district: 'all',
+    districtId: 'all',
+    area: 'all',
     condition: 'all',
     dateRange: '7d',
     startDate: '',
@@ -37,8 +41,8 @@ const ProfessionalReports = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(25)
 
-  // Available districts for filtering
-  const [availableDistricts, setAvailableDistricts] = useState([])
+  const [allDistricts, setAllDistricts] = useState([])
+  const [districtAreas, setDistrictAreas] = useState([])
   const printableReportRef = useRef(null)
 
   // Load reports data
@@ -96,15 +100,6 @@ const ProfessionalReports = () => {
       }
       setStats(newStats)
 
-      // Extract unique districts
-      const districts = new Set()
-      reportsWithDistricts.forEach(report => {
-        if (report.facility?.district?.name) {
-          districts.add(report.facility.district.name)
-        }
-      })
-      setAvailableDistricts(Array.from(districts).sort())
-
     } catch (err) {
       console.error('Error loading reports:', err)
       setError(err.message)
@@ -112,6 +107,61 @@ const ProfessionalReports = () => {
       setLoading(false)
     }
   }, [filters.dateRange, filters.startDate, filters.endDate])
+
+  // Admin: load every district for the filter dropdown
+  useEffect(() => {
+    if (!isNationalAdmin) {
+      setAllDistricts([])
+      return
+    }
+
+    let cancelled = false
+    districts.getAll().then((result) => {
+      if (cancelled) return
+      if (result.error) {
+        console.error('Error loading districts for filter:', result.error)
+        setAllDistricts([])
+        return
+      }
+      setAllDistricts(result.data || [])
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isNationalAdmin])
+
+  // Officer: load areas (facility locations) within assigned district
+  useEffect(() => {
+    if (!isDistrictOfficer) {
+      setDistrictAreas([])
+      return
+    }
+    if (officerDistrictScopeLoading || !user?.district_id) {
+      setDistrictAreas([])
+      return
+    }
+
+    let cancelled = false
+    supabase
+      .from('facilities')
+      .select('id, name, district:districts(name)')
+      .eq('district_id', user.district_id)
+      .order('name')
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          console.error('Error loading district areas for filter:', error.message)
+          setDistrictAreas([])
+          return
+        }
+        setDistrictAreas(buildAreaOptionsFromFacilities(data || []))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isDistrictOfficer, user?.district_id, officerDistrictScopeLoading])
 
   // Classify a report as worker or community based on reported_by field
   const isWorkerReport = (report) => {
@@ -131,10 +181,15 @@ const ProfessionalReports = () => {
       filtered = filtered.filter(r => !isWorkerReport(r))
     }
 
-    // Area (district) filter
-    if (filters.district !== 'all') {
-      filtered = filtered.filter(report => 
-        report.facility?.district?.name === filters.district
+    if (isNationalAdmin && filters.districtId !== 'all') {
+      filtered = filtered.filter(
+        (report) => report.facility?.district?.id === filters.districtId
+      )
+    }
+
+    if (isDistrictOfficer && filters.area !== 'all') {
+      filtered = filtered.filter(
+        (report) => getReportAreaLabel(report) === filters.area
       )
     }
 
@@ -159,7 +214,7 @@ const ProfessionalReports = () => {
 
     setFilteredReports(filtered)
     setCurrentPage(1) // Reset to first page when filters change
-  }, [reportsData, filters, activeTab])
+  }, [reportsData, filters, activeTab, isNationalAdmin, isDistrictOfficer])
 
   // Load initial data
   useEffect(() => {
@@ -177,7 +232,8 @@ const ProfessionalReports = () => {
   // Clear all filters
   const clearFilters = () => {
     setFilters({
-      district: 'all',
+      districtId: 'all',
+      area: 'all',
       condition: 'all',
       dateRange: '7d',
       startDate: '',
@@ -312,8 +368,10 @@ const ProfessionalReports = () => {
   const communityCount = reportsData.filter(r => !isWorkerReport(r)).length
 
   const reportsSubtitle = isNationalAdmin
-    ? `${filteredReports.length} of ${stats.total} reports shown • National view (all areas)`
-    : `${filteredReports.length} of ${stats.total} reports shown`
+    ? `${filteredReports.length} of ${stats.total} reports shown • National view`
+    : isDistrictOfficer
+      ? `${filteredReports.length} of ${stats.total} reports shown${user?.district_name ? ` • ${user.district_name} district` : ''}`
+      : `${filteredReports.length} of ${stats.total} reports shown`
 
   return (
     <AppLayout 
@@ -401,20 +459,42 @@ const ProfessionalReports = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {/* Area Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Area</label>
-            <select 
-              value={filters.district}
-              onChange={(e) => handleFilterChange('district', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="all">All Areas</option>
-              {availableDistricts.map(district => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </select>
-          </div>
+          {isNationalAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select District</label>
+              <select
+                value={filters.districtId}
+                onChange={(e) => handleFilterChange('districtId', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="all">All Districts</option>
+                {allDistricts.map((district) => (
+                  <option key={district.id} value={district.id}>
+                    {district.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isDistrictOfficer && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Area</label>
+              <select
+                value={filters.area}
+                onChange={(e) => handleFilterChange('area', e.target.value)}
+                disabled={officerDistrictScopeLoading}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="all">All Areas</option>
+                {districtAreas.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Condition Filter */}
           <div>
@@ -533,7 +613,7 @@ const ProfessionalReports = () => {
                       Facility
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Area
+                      {isDistrictOfficer ? 'Area' : 'District'}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Condition
@@ -563,8 +643,17 @@ const ProfessionalReports = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div>
-                          <div>{report.facility?.district?.name || 'Unknown'}</div>
-                          <div className="text-gray-500 text-xs">{report.facility?.district?.region || ''}</div>
+                          {isDistrictOfficer ? (
+                            <>
+                              <div>{getReportAreaLabel(report)}</div>
+                              <div className="text-gray-500 text-xs">{report.facility?.name || ''}</div>
+                            </>
+                          ) : (
+                            <>
+                              <div>{report.facility?.district?.name || 'Unknown'}</div>
+                              <div className="text-gray-500 text-xs">{report.facility?.district?.region || ''}</div>
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

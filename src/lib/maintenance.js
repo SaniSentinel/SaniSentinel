@@ -503,12 +503,13 @@ export const maintenance = {
         }
 
         if (!notifyData?.success) {
-          // Only surface email errors — SMS is intentionally disabled.
-          const emailErr = notifyData?.email?.error ? ` Email: ${notifyData.email.error}.` : ''
-          if (emailErr) {
+          const parts = []
+          if (notifyData?.sms?.error) parts.push(`SMS: ${notifyData.sms.error}`)
+          if (notifyData?.email?.error) parts.push(`Email: ${notifyData.email.error}`)
+          if (parts.length > 0) {
             return {
               data: updateResult.data,
-              error: `Task started, but notification failed.${emailErr}`.trim(),
+              error: `Task started, but notification failed: ${parts.join(' ')}`,
             }
           }
         }

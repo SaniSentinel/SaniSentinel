@@ -23,8 +23,10 @@ When a maintenance task is moved to **In Progress** from the UI, SaniSentinel no
 
 Set these in **Supabase Dashboard > Edge Functions > Secrets**:
 
-- `AFRICAS_TALKING_API_KEY` (required for SMS)
-- `AFRICAS_TALKING_USERNAME` (use `sandbox` for simulator)
+- `AFRICAS_TALKING_API_KEY` (required for SMS; use the **sandbox** key when `AFRICAS_TALKING_USERNAME=sandbox`)
+- `AFRICAS_TALKING_USERNAME` (use `sandbox` for simulator; production uses your app username)
+
+When `AFRICAS_TALKING_USERNAME` is `sandbox`, edge functions call `https://api.sandbox.africastalking.com` automatically. Using a sandbox key against the production host returns **401 invalid authentication**.
 - `SMTP_HOST` (required for email)
 - `SMTP_PORT` (required, e.g. `587` or `465`)
 - `SMTP_SECURE` (`true` for 465 SSL, `false` for 587 STARTTLS)

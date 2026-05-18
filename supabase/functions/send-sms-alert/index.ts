@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getAtCredentials, getAtMessagingUrl } from '../_shared/africasTalking.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,19 +53,6 @@ interface SMSResponse {
   recipients?: number
   error?: string
 }
-
-function readEnv(...keys: string[]): string | null {
-  for (const key of keys) {
-    const v = Deno.env.get(key)
-    if (v && v.trim() !== '') return v.trim()
-  }
-  return null
-}
-
-// Africa's Talking SMS API configuration
-const AT_API_KEY = readEnv('AFRICAS_TALKING_API_KEY', 'AFRICAS_TALKING_APIKEY', 'AT_API_KEY')
-const AT_USERNAME = readEnv('AFRICAS_TALKING_USERNAME', 'AT_USERNAME') || 'sandbox'
-const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
 // SMS message templates
 const SMS_TEMPLATES = {
@@ -178,6 +166,8 @@ async function getWorkersForAlert(supabase: any, alert: Alert): Promise<Worker[]
 
 // Send SMS using Africa's Talking API
 async function sendSMS(to: string[], message: string, testMode = false): Promise<SMSResponse> {
+  const { apiKey: AT_API_KEY, username: AT_USERNAME } = getAtCredentials()
+
   if (!AT_API_KEY) {
     return {
       success: false,
@@ -201,11 +191,12 @@ async function sendSMS(to: string[], message: string, testMode = false): Promise
     formData.append('to', to.join(','))
     formData.append('message', message)
     
-    const response = await fetch(AT_BASE_URL, {
+    const response = await fetch(getAtMessagingUrl(AT_USERNAME), {
       method: 'POST',
       headers: {
-        'apiKey': AT_API_KEY,
-        'Accept': 'application/json'
+        apiKey: AT_API_KEY,
+        Apikey: AT_API_KEY,
+        Accept: 'application/json',
       },
       body: formData
     })

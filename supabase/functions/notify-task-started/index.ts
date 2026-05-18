@@ -1,23 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer'
+import { sendAtSms } from '../_shared/africasTalking.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-function readEnv(...keys: string[]): string | null {
-  for (const key of keys) {
-    const v = Deno.env.get(key)
-    if (v && v.trim() !== '') return v.trim()
-  }
-  return null
-}
-
-const AT_API_KEY = readEnv('AFRICAS_TALKING_API_KEY', 'AFRICAS_TALKING_APIKEY', 'AT_API_KEY')
-const AT_USERNAME = readEnv('AFRICAS_TALKING_USERNAME', 'AT_USERNAME') || 'sandbox'
-const AT_BASE_URL = 'https://api.africastalking.com/version1/messaging'
 
 const TASK_NOTIFICATION_FROM_EMAIL =
   Deno.env.get('TASK_NOTIFICATION_FROM_EMAIL') || 'SaniSentinel <no-reply@sanisentinel.local>'
@@ -54,37 +43,6 @@ function labelTaskType(taskType: string): string {
   return map[taskType] || taskType
 }
 
-async function sendSMS(to: string, message: string) {
-  if (!AT_API_KEY) {
-    return { ok: false, error: 'AFRICAS_TALKING_API_KEY not configured (or empty)' }
-  }
-
-  const formData = new FormData()
-  formData.append('username', AT_USERNAME)
-  formData.append('to', to)
-  formData.append('message', message)
-
-  const res = await fetch(AT_BASE_URL, {
-    method: 'POST',
-    headers: {
-      apiKey: AT_API_KEY,
-      Accept: 'application/json',
-    },
-    body: formData,
-  })
-
-  const text = await res.text()
-  if (!res.ok) {
-    return {
-      ok: false,
-      error:
-        `AT API ${res.status}: ${text}` +
-        ` (username="${AT_USERNAME}", key_present=${AT_API_KEY.length > 8})`,
-    }
-  }
-  return { ok: true, raw: text }
-}
-
 async function sendEmail(to: string, subject: string, html: string) {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     return { ok: false, error: 'SMTP_HOST/SMTP_USER/SMTP_PASS not configured' }
@@ -111,6 +69,39 @@ async function sendEmail(to: string, subject: string, html: string) {
     return { ok: true, raw: JSON.stringify({ messageId: info.messageId }) }
   } catch (error) {
     return { ok: false, error: `Nodemailer SMTP error: ${error.message}` }
+  }
+}
+
+async function logSmsGateway(
+  supabase: ReturnType<typeof createClient>,
+  payload: {
+    taskId: string
+    phone: string
+    message: string
+    facilityId?: string
+    districtId?: string
+    providerMessageId?: string
+    success: boolean
+    error?: string
+  },
+) {
+  try {
+    await supabase.from('sms_gateway_logs').insert({
+      direction: 'outbound',
+      status: payload.success ? 'sent' : 'failed',
+      phone_to: payload.phone,
+      message: payload.message,
+      facility_id: payload.facilityId || null,
+      district_id: payload.districtId || null,
+      provider_message_id: payload.providerMessageId || null,
+      error_message: payload.error || null,
+      metadata: {
+        source: 'notify-task-started',
+        task_id: payload.taskId,
+      },
+    })
+  } catch (logError) {
+    console.error('Failed to write sms_gateway_logs:', logError)
   }
 }
 
@@ -185,11 +176,18 @@ serve(async (req) => {
       `Task started: ${taskType} at ${facilityName} (${districtName}). ` +
       `Priority: ${task.priority}. Due: ${task.due_date}.`
 
-    // SMS notifications are temporarily disabled.
-    const smsResult: { ok: boolean; error?: string } = {
-      ok: false,
-      error: 'SMS notifications are currently disabled',
-    }
+    const smsResult = await sendAtSms(task.worker.phone, smsMessage)
+
+    await logSmsGateway(supabase, {
+      taskId: task.id,
+      phone: task.worker.phone,
+      message: smsMessage,
+      facilityId: task.facility?.id,
+      districtId: task.facility?.district?.id,
+      providerMessageId: smsResult.ok ? smsResult.providerMessageId : undefined,
+      success: smsResult.ok,
+      error: smsResult.ok ? undefined : smsResult.error,
+    })
 
     let emailResult: { ok: boolean; error?: string; raw?: string } = {
       ok: false,
@@ -214,19 +212,19 @@ serve(async (req) => {
       emailResult = await sendEmail(task.worker.email, subject, html)
     }
 
-    // SMS is disabled — success is determined by email only.
-    const allNotificationsOk = emailResult.ok
-
-    // SMS logging is skipped while SMS notifications are disabled.
-    // No sms_gateway_logs entry is written to avoid polluting the admin log
-    // with expected failures.
+    const allNotificationsOk = smsResult.ok && (!task.worker.email || emailResult.ok)
 
     return new Response(
       JSON.stringify({
         success: allNotificationsOk,
         task_id: task.id,
-        worker: { id: task.worker.id, name: workerName, phone: task.worker.phone, email: task.worker.email || null },
-        sms: smsResult,
+        worker: {
+          id: task.worker.id,
+          name: workerName,
+          phone: task.worker.phone,
+          email: task.worker.email || null,
+        },
+        sms: smsResult.ok ? { ok: true } : { ok: false, error: smsResult.error },
         email: emailResult,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
