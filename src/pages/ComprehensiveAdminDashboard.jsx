@@ -6,9 +6,26 @@ import PieChart from '../components/Charts/PieChart'
 import BarChart from '../components/Charts/BarChart'
 import LineChart from '../components/Charts/LineChart'
 import KPICard from '../components/Charts/KPICard'
+import { supabase } from '../lib/supabase'
 
 const ComprehensiveAdminDashboard = () => {
   const [timeRange, setTimeRange] = useState('7d')
+  const [recentReports, setRecentReports] = useState([])
+
+  useEffect(() => {
+    const fetchRecentReports = async () => {
+      const { data } = await supabase
+        .from('reports')
+        .select(`
+          id, condition, reported_by, notes, created_at,
+          facility:facilities(name, district:districts(name))
+        `)
+        .order('created_at', { ascending: false })
+        .limit(8)
+      if (data) setRecentReports(data)
+    }
+    fetchRecentReports()
+  }, [])
 
   const { 
     stats, 
@@ -427,47 +444,77 @@ const ComprehensiveAdminDashboard = () => {
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Real-Time Activity</h3>
-                  <p className="text-sm text-gray-600">Live system events and updates</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Reports</h3>
+                  <p className="text-sm text-gray-600">Latest facility reports from the field</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.green[500] }}></div>
                   <span className="text-sm font-medium" style={{ color: colors.green[600] }}>Live</span>
                 </div>
               </div>
-              <div className="space-y-4 max-h-64 overflow-y-auto">
-                {activity && activity.reports ? (
-                  // Show real activity data if available
-                  Object.entries(activity.reports.byDay || {})
-                    .slice(-5)
-                    .reverse()
-                    .map(([date, count], index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 rounded-lg" style={{ backgroundColor: colors.blue[100] }}>
-                        <div className="text-lg">📝</div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{count} facility reports received on {date}</p>
-                          <p className="text-xs text-gray-600">{Math.floor(Math.random() * 60)} min ago</p>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {recentReports.length > 0 ? (
+                  recentReports.map((report) => {
+                    const isWorker = report.reported_by?.startsWith('officer:') || report.reported_by?.startsWith('worker:')
+                    const reporterLabel = isWorker
+                      ? report.reported_by.replace(/^(officer|worker):/, '').replace('+233', '0')
+                      : report.reported_by?.replace('+233', '0') || 'Unknown'
+                    // Parse notes into readable message
+                    const rawNotes = report.notes || ''
+                    let locationNote = ''
+                    if (rawNotes.includes(' | ')) {
+                      const blockPart = rawNotes.split(' | ').find(p => p.startsWith('Block'))
+                      locationNote = blockPart
+                        ? blockPart.replace(/^Block\/?[Ss]ection:\s*/, '').replace(/^Block\/location:\s*/, '')
+                        : ''
+                    }
+                    const conditionColors = {
+                      good: 'bg-green-50 border-green-200',
+                      damaged: 'bg-orange-50 border-orange-200',
+                      overflow: 'bg-red-50 border-red-200',
+                      dry: 'bg-yellow-50 border-yellow-200',
+                      blocked: 'bg-red-50 border-red-200',
+                      out_of_service: 'bg-gray-50 border-gray-200'
+                    }
+                    const conditionIcons = {
+                      good: '✅', damaged: '🔧', overflow: '🌊', dry: '🏜️', blocked: '🚫', out_of_service: '⛔'
+                    }
+                    const timeAgo = (() => {
+                      const diff = Date.now() - new Date(report.created_at).getTime()
+                      const mins = Math.floor(diff / 60000)
+                      if (mins < 1) return 'just now'
+                      if (mins < 60) return `${mins}m ago`
+                      const hrs = Math.floor(mins / 60)
+                      if (hrs < 24) return `${hrs}h ago`
+                      return `${Math.floor(hrs / 24)}d ago`
+                    })()
+                    return (
+                      <div key={report.id} className={`flex items-start space-x-3 p-3 rounded-lg border ${conditionColors[report.condition] || 'bg-gray-50 border-gray-200'}`}>
+                        <div className="text-lg shrink-0">{conditionIcons[report.condition] || '📝'}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {report.facility?.name || 'Unknown facility'}
+                            {report.facility?.district?.name ? ` — ${report.facility.district.name}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-700 mt-0.5">
+                            Condition: <span className="font-semibold capitalize">{report.condition?.replace(/_/g, ' ')}</span>
+                            {locationNote ? ` · ${locationNote}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {isWorker ? '👷 Worker' : '🏘️ Community'} · {reporterLabel} · {timeAgo}
+                          </p>
                         </div>
                       </div>
-                    ))
+                    )
+                  })
                 ) : (
-                  // Fallback activity data
-                  [
-                    { type: 'report', message: 'New facility report from Tamale District', time: '2 min ago', icon: '📝', color: colors.blue[100] },
-                    { type: 'maintenance', message: 'Maintenance task completed in Yendi', time: '5 min ago', icon: '✅', color: colors.green[100] },
-                    { type: 'alert', message: 'High risk facility detected in Damongo', time: '12 min ago', icon: '⚠️', color: '#FEF3C7' },
-                    { type: 'system', message: 'System backup completed successfully', time: '18 min ago', icon: '💾', color: colors.blue[100] },
-                    { type: 'user', message: 'New district officer registered', time: '25 min ago', icon: '👤', color: '#F3E8FF' }
-                  ].map((activityItem, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg" style={{ backgroundColor: activityItem.color }}>
-                      <div className="text-lg">{activityItem.icon}</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{activityItem.message}</p>
-                        <p className="text-xs text-gray-600">{activityItem.time}</p>
-                      </div>
-                    </div>
-                  ))
+                  <div className="text-center py-8 text-gray-400 text-sm">No recent reports</div>
                 )}
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <Link to="/reports" className="text-sm font-medium hover:opacity-80 transition-colors" style={{ color: colors.primary }}>
+                  View all reports →
+                </Link>
               </div>
             </div>
           </div>

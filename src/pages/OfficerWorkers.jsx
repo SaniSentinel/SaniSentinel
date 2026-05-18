@@ -44,6 +44,22 @@ const OfficerWorkers = () => {
   const [addError, setAddError] = useState('')
   const [adding, setAdding] = useState(false)
 
+  const [deletingId, setDeletingId] = useState(null)
+
+  const handleDelete = async (w) => {
+    if (!window.confirm(`Delete worker "${w.name}"? This cannot be undone.`)) return
+    try {
+      setDeletingId(w.id)
+      const res = await workers.delete(w.id)
+      if (res.error) throw new Error(res.error)
+      await load()
+    } catch (err) {
+      alert(`Could not delete worker: ${err.message}`)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const load = useCallback(async () => {
     if (officerDistrictScopeLoading) return
     if (!user?.district_id) {
@@ -307,13 +323,23 @@ const OfficerWorkers = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(w)}
-                            className="text-green-700 hover:text-green-900 font-medium"
-                          >
-                            Edit
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(w)}
+                              className="text-green-700 hover:text-green-900 font-medium"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(w)}
+                              disabled={deletingId === w.id}
+                              className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                            >
+                              {deletingId === w.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -329,13 +355,23 @@ const OfficerWorkers = () => {
                         <p className="font-semibold text-gray-900 break-words">{w.name}</p>
                         <p className="text-sm text-gray-600 mt-0.5">{ROLE_LABELS[w.role] || w.role}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => openEdit(w)}
-                        className="shrink-0 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(w)}
+                          className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(w)}
+                          disabled={deletingId === w.id}
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          {deletingId === w.id ? '…' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
                     <dl className="grid grid-cols-1 gap-2 text-sm">
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">

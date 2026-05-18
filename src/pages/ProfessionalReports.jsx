@@ -19,6 +19,9 @@ const ProfessionalReports = () => {
     today: 0
   })
 
+  // Active tab: 'workers' | 'community'
+  const [activeTab, setActiveTab] = useState('workers')
+
   // Filter states
   const [filters, setFilters] = useState({
     district: 'all',
@@ -110,11 +113,25 @@ const ProfessionalReports = () => {
     }
   }, [filters.dateRange, filters.startDate, filters.endDate])
 
+  // Classify a report as worker or community based on reported_by field
+  const isWorkerReport = (report) => {
+    const r = report.reported_by || ''
+    // Worker reports come from officer: prefix, worker: prefix, or are linked to a known worker phone
+    return r.startsWith('officer:') || r.startsWith('worker:') || r.startsWith('USSD:worker:')
+  }
+
   // Apply filters to reports
   useEffect(() => {
     let filtered = [...reportsData]
 
-    // District filter
+    // Tab filter: workers vs community
+    if (activeTab === 'workers') {
+      filtered = filtered.filter(r => isWorkerReport(r))
+    } else {
+      filtered = filtered.filter(r => !isWorkerReport(r))
+    }
+
+    // Area (district) filter
     if (filters.district !== 'all') {
       filtered = filtered.filter(report => 
         report.facility?.district?.name === filters.district
@@ -142,7 +159,7 @@ const ProfessionalReports = () => {
 
     setFilteredReports(filtered)
     setCurrentPage(1) // Reset to first page when filters change
-  }, [reportsData, filters])
+  }, [reportsData, filters, activeTab])
 
   // Load initial data
   useEffect(() => {
@@ -291,8 +308,11 @@ const ProfessionalReports = () => {
     )
   }
 
+  const workerCount = reportsData.filter(r => isWorkerReport(r)).length
+  const communityCount = reportsData.filter(r => !isWorkerReport(r)).length
+
   const reportsSubtitle = isNationalAdmin
-    ? `${filteredReports.length} of ${stats.total} reports shown • National view (all districts)`
+    ? `${filteredReports.length} of ${stats.total} reports shown • National view (all areas)`
     : `${filteredReports.length} of ${stats.total} reports shown`
 
   return (
@@ -301,6 +321,38 @@ const ProfessionalReports = () => {
       subtitle={reportsSubtitle}
       actions={actions}
     >
+      {/* Worker / Community Tabs */}
+      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setActiveTab('workers')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            activeTab === 'workers'
+              ? 'bg-white text-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <span>👷</span>
+          Workers Reports
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+            activeTab === 'workers' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+          }`}>{workerCount}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('community')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            activeTab === 'community'
+              ? 'bg-white text-green-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <span>🏘️</span>
+          Community Reports
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+            activeTab === 'community' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+          }`}>{communityCount}</span>
+        </button>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <MetricCard
@@ -349,15 +401,15 @@ const ProfessionalReports = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {/* District Filter */}
+          {/* Area Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Area</label>
             <select 
               value={filters.district}
               onChange={(e) => handleFilterChange('district', e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
             >
-              <option value="all">All Districts</option>
+              <option value="all">All Areas</option>
               {availableDistricts.map(district => (
                 <option key={district} value={district}>{district}</option>
               ))}
@@ -481,7 +533,7 @@ const ProfessionalReports = () => {
                       Facility
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      District
+                      Area
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Condition
@@ -519,12 +571,33 @@ const ProfessionalReports = () => {
                         <StatusBadge status={report.condition} size="sm" />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatPhoneNumber(report.reported_by)}
+                        <div>
+                          <div>{formatPhoneNumber(report.reported_by)}</div>
+                          <div className="text-xs text-gray-500">
+                            {isWorkerReport(report) ? (
+                              <span className="inline-flex items-center gap-1 text-blue-600">
+                                <span>👷</span> Worker
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-green-600">
+                                <span>🏘️</span> Community
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                        <div className="truncate" title={report.notes}>
-                          {report.notes || '-'}
-                        </div>
+                        {report.notes ? (
+                          <div className="space-y-1">
+                            {report.notes.split(' | ').map((part, i) => (
+                              <div key={i} className="text-xs text-gray-700 leading-relaxed">
+                                {part}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

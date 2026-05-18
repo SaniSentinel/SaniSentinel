@@ -205,13 +205,25 @@ serve(async (req) => {
   const parts = text === "" ? [] : text.split("*")
   const level = parts.length
 
+  // Determine if caller is a registered worker
+  const worker = await getWorkerByPhone(phone, phoneRaw)
+  const isWorker = !!worker?.id
+
   if (level === 0) {
-    return CON(
-      "SaniSentinel WASH (*384*11082#)\n\n" +
-        "1. Report facility\n" +
-        "2. My assignments\n\n" +
-        "Select option:",
-    )
+    if (isWorker) {
+      return CON(
+        "SaniSentinel WASH (*384*11082#)\n\n" +
+          "1. Report facility\n" +
+          "2. My assignments\n\n" +
+          "Select option:",
+      )
+    } else {
+      return CON(
+        "SaniSentinel WASH (*384*11082#)\n\n" +
+          "1. Report facility\n\n" +
+          "Select option:",
+      )
+    }
   }
 
   const mainChoice = parts[0]
@@ -229,10 +241,9 @@ serve(async (req) => {
     }
 
     if (mainChoice === "2") {
-      const worker = await getWorkerByPhone(phone, phoneRaw)
-      if (!worker?.id) {
-        return END(
-          "No worker profile for this number.\nAsk your district officer to add you.",
+      if (!isWorker) {
+        return CON(
+          "Invalid choice.\n\n1. Report facility\n\nSelect option:",
         )
       }
       return CON(
@@ -243,8 +254,13 @@ serve(async (req) => {
       )
     }
 
+    if (isWorker) {
+      return CON(
+        "Invalid choice.\n\n1. Report facility\n2. My assignments\n\nSelect option:",
+      )
+    }
     return CON(
-      "Invalid choice.\n\n1. Report facility\n2. My assignments\n\nSelect option:",
+      "Invalid choice.\n\n1. Report facility\n\nSelect option:",
     )
   }
 
@@ -497,11 +513,11 @@ serve(async (req) => {
     }
 
     const notes =
-      `USSD *384*11082# | Block/location: ${location} | From: ${phone}`
+      `USSD *384*11082# | Block/location: ${location} | From: ${phone} | Reporter: ${isWorker ? "worker" : "community"}`
 
     const { error: reportError } = await supabase.from("reports").insert({
       facility_id: facility.id,
-      reported_by: phone,
+      reported_by: isWorker ? `worker:${phone}` : phone,
       condition,
       notes,
     })

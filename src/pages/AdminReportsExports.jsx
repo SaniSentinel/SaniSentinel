@@ -188,15 +188,37 @@ const AdminReportsExports = () => {
         if (e) throw new Error(e.message)
         rows = (data || [])
           .filter((r) => !districtFilter || r.facility?.district?.id === districtFilter)
-          .map((r) => ({
-            id: r.id,
-            date: r.created_at,
-            district: r.facility?.district?.name || '',
-            region: r.facility?.district?.region || '',
-            facility: r.facility?.name || '',
-            condition: r.condition,
-            reported_by: r.reported_by
-          }))
+          .map((r) => {
+            // Parse the notes field into a clean readable message
+            const rawNotes = r.notes || ''
+            let cleanMessage = rawNotes
+            // Notes format: "SMS Report from +233... | Block/Section: A | Facility: ... | District: ... | Raw message: ..."
+            // Or USSD format: "USSD *384*11082# | Block/location: ... | From: ... | Reporter: ..."
+            if (rawNotes.includes(' | ')) {
+              const parts = rawNotes.split(' | ')
+              const blockPart = parts.find(p => p.startsWith('Block'))
+              const block = blockPart ? blockPart.replace(/^Block\/?[Ss]ection:\s*/, '').replace(/^Block\/location:\s*/, '') : ''
+              cleanMessage = block ? `Block/Location: ${block}` : parts[0]
+            }
+            return {
+              id: r.id,
+              date: r.created_at,
+              district: r.facility?.district?.name || '',
+              region: r.facility?.district?.region || '',
+              facility: r.facility?.name || '',
+              condition: r.condition,
+              reported_by: r.reported_by?.startsWith('officer:')
+                ? r.reported_by.replace('officer:', 'Officer: ')
+                : r.reported_by?.startsWith('worker:')
+                ? r.reported_by.replace('worker:', 'Worker: ')
+                : r.reported_by,
+              reporter_type: r.reported_by?.startsWith('officer:') || r.reported_by?.startsWith('worker:')
+                ? 'Worker/Officer'
+                : 'Community',
+              message: cleanMessage,
+              raw_notes: rawNotes
+            }
+          })
       } else if (dataset === 'facilities') {
         const { data, error: e } = await supabase
           .from('facilities')
@@ -337,10 +359,53 @@ const AdminReportsExports = () => {
         </div>
 
         {exportRows.length > 0 && (
-          <div className="mt-4 text-xs text-gray-500">
-            Export scope: {selectedDistrict === 'all' ? 'All districts' : districts.find((d) => d.id === selectedDistrict)?.name} • {startDate} to {endDate}
+          <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  {Object.keys(exportRows[0])
+                    .filter(k => k !== 'raw_notes')
+                    .map((h) => (
+                      <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                        {h.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {exportRows.slice(0, 50).map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    {Object.entries(row)
+                      .filter(([k]) => k !== 'raw_notes')
+                      .map(([k, v]) => (
+                        <td key={k} className="px-4 py-2 text-gray-800 max-w-xs">
+                          {k === 'message' ? (
+                            <span className="text-gray-700 leading-relaxed">{String(v ?? '')}</span>
+                          ) : k === 'reporter_type' ? (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              String(v) === 'Worker/Officer'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-green-100 text-green-700'
+                            }`}>{String(v ?? '')}</span>
+                          ) : (
+                            <span className="truncate block max-w-[12rem]" title={String(v ?? '')}>{String(v ?? '')}</span>
+                          )}
+                        </td>
+                      ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {exportRows.length > 50 && (
+              <p className="text-xs text-gray-500 px-4 py-2 border-t border-gray-200">
+                Showing first 50 of {exportRows.length} rows. Export to CSV/PDF to see all.
+              </p>
+            )}
           </div>
         )}
+        <div className="mt-3 text-xs text-gray-500">
+          Export scope: {selectedDistrict === 'all' ? 'All areas' : districts.find((d) => d.id === selectedDistrict)?.name} • {startDate} to {endDate}
+        </div>
       </div>
     </AppLayout>
   )
