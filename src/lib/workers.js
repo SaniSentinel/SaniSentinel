@@ -312,15 +312,30 @@ export const workers = {
   },
 
   // Delete worker (hard delete)
+  // Uses the officer_delete_worker RPC which runs SECURITY DEFINER to bypass
+  // the RLS policy that previously only allowed system_admin to delete.
   delete: async (id) => {
     try {
+      // Try the RPC function first (works for both officers and admins)
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('officer_delete_worker', { worker_id: id })
+
+      if (!rpcError) {
+        // RPC returns { success: true, deleted_worker: name } or { success: false, error: msg }
+        if (rpcData?.success === false) {
+          return { data: null, error: rpcData.error || 'Delete failed' }
+        }
+        return { data: rpcData, error: null }
+      }
+
+      // Fallback: direct delete (works if RLS policy allows it, e.g. system_admin)
       const { data, error } = await supabase
         .from('workers')
         .delete()
         .eq('id', id)
         .select()
         .single()
-      
+
       if (error) throw error
       return { data, error: null }
     } catch (error) {
