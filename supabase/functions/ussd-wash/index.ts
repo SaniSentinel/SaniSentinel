@@ -70,6 +70,54 @@ function normalizeGhPhone(raw: string): string {
   return "+" + digits
 }
 
+/** All common Ghana phone formats stored or sent by Africa's Talking. */
+function phoneLookupVariants(raw: string): string[] {
+  const trimmed = raw.trim()
+  const normalized = normalizeGhPhone(trimmed)
+  const digits = trimmed.replace(/\D/g, "")
+  const variants = new Set<string>([trimmed, normalized])
+
+  if (digits.startsWith("233") && digits.length >= 12) {
+    variants.add("+" + digits)
+    variants.add("0" + digits.slice(3))
+    variants.add(digits)
+  } else if (digits.startsWith("0") && digits.length === 10) {
+    variants.add("+233" + digits.slice(1))
+    variants.add("233" + digits.slice(1))
+    variants.add(digits)
+  } else if (digits.length >= 9) {
+    variants.add("+233" + digits)
+    variants.add("0" + digits)
+  }
+
+  return [...variants].filter((v) => v.length > 0)
+}
+
+function buildMainMenu(isWorker: boolean): string {
+  if (isWorker) {
+    return (
+      "SaniSentinel WASH (*384*11082#)\n\n" +
+      "1. Report facility\n" +
+      "2. My assignments\n\n" +
+      "Select option:"
+    )
+  }
+  return (
+    "SaniSentinel WASH (*384*11082#)\n\n" +
+    "1. Report facility\n\n" +
+    "Select option:"
+  )
+}
+
+function buildInvalidMainMenu(isWorker: boolean): string {
+  return (
+    "Invalid choice.\n\n" +
+    (isWorker
+      ? "1. Report facility\n2. My assignments\n\nSelect option:"
+      : "1. Report facility\n\nSelect option:")
+  )
+}
+
 function parseDate(input: string): string | null {
   if (input === "0000" || input.length !== 4) return null
   const day = parseInt(input.slice(0, 2))
@@ -89,23 +137,24 @@ function parseDate(input: string): string | null {
   return d.toISOString().split("T")[0]
 }
 
-async function getWorkerFirstName(phone: string): Promise<string> {
-  const p = normalizeGhPhone(phone)
+async function getWorkerFirstName(phoneRaw: string): Promise<string> {
   const { data } = await supabase
     .from("workers")
     .select("name")
-    .in("phone", [...new Set([p, phone.trim()])])
+    .in("phone", phoneLookupVariants(phoneRaw))
+    .eq("active", true)
     .limit(1)
     .maybeSingle()
   return data?.name?.split(" ")[0] ?? "Worker"
 }
 
-async function getWorkerByPhone(phone: string, phoneRaw: string): Promise<WorkerLookup | null> {
+async function getWorkerByPhone(phoneRaw: string): Promise<WorkerLookup | null> {
   const { data } = await supabase
     .from("workers")
     .select("id, name, district_id")
-    .in("phone", [...new Set([phone, phoneRaw.trim()])])
+    .in("phone", phoneLookupVariants(phoneRaw))
     .eq("active", true)
+    .limit(1)
     .maybeSingle()
 
   return (data as WorkerLookup | null) || null
@@ -205,25 +254,12 @@ serve(async (req) => {
   const parts = text === "" ? [] : text.split("*")
   const level = parts.length
 
-  // Determine if caller is a registered worker
-  const worker = await getWorkerByPhone(phone, phoneRaw)
+  // Registered active worker → show "My assignments"; community callers → report only
+  const worker = await getWorkerByPhone(phoneRaw)
   const isWorker = !!worker?.id
 
   if (level === 0) {
-    if (isWorker) {
-      return CON(
-        "SaniSentinel WASH (*384*11082#)\n\n" +
-          "1. Report facility\n" +
-          "2. My assignments\n\n" +
-          "Select option:",
-      )
-    } else {
-      return CON(
-        "SaniSentinel WASH (*384*11082#)\n\n" +
-          "1. Report facility\n\n" +
-          "Select option:",
-      )
-    }
+    return CON(buildMainMenu(isWorker))
   }
 
   const mainChoice = parts[0]
@@ -242,9 +278,7 @@ serve(async (req) => {
 
     if (mainChoice === "2") {
       if (!isWorker) {
-        return CON(
-          "Invalid choice.\n\n1. Report facility\n\nSelect option:",
-        )
+        return CON(buildInvalidMainMenu(false))
       }
       return CON(
         "Assignments menu:\n\n" +
@@ -254,19 +288,11 @@ serve(async (req) => {
       )
     }
 
-    if (isWorker) {
-      return CON(
-        "Invalid choice.\n\n1. Report facility\n2. My assignments\n\nSelect option:",
-      )
-    }
-    return CON(
-      "Invalid choice.\n\n1. Report facility\n\nSelect option:",
-    )
+    return CON(buildInvalidMainMenu(isWorker))
   }
 
   if (mainChoice === "2") {
-    const worker = await getWorkerByPhone(phone, phoneRaw)
-    if (!worker?.id) {
+    if (!isWorker || !worker?.id) {
       return END("No worker profile found. Contact district officer.")
     }
 
@@ -488,12 +514,7 @@ serve(async (req) => {
     const confirmChoice = parts[6]
 
     if (confirmChoice === "2") {
-      return CON(
-        "SaniSentinel WASH\n\n" +
-          "1. Report facility\n" +
-          "2. My assignments\n\n" +
-          "Select option:",
-      )
+      return CON(buildMainMenu(isWorker))
     }
 
     if (confirmChoice !== "1") {
@@ -541,13 +562,15 @@ serve(async (req) => {
       hour: "2-digit",
       minute: "2-digit",
     })
-    const workerName = await getWorkerFirstName(phone)
+    const thankYouLine = isWorker
+      ? `Thank you, ${await getWorkerFirstName(phoneRaw)}.`
+      : "Thank you for your report."
 
     return END(
       "Report submitted!\n\n" +
         `Condition: ${condition}\n` +
         `Saved: ${now}\n\n` +
-        `Thank you, ${workerName}.\n` +
+        `${thankYouLine}\n` +
         "Your team has been notified.",
     )
   }
